@@ -42,18 +42,23 @@ select_role() {
 
 # config_run runs the freshly built binary in a throwaway container that can do
 # nothing but read config.yaml: no network, read-only, no capabilities. It runs
-# as the invoking user, so a 0600 config.yaml owned by that user is readable on
-# Linux as well as macOS.
+# as the file's owner, so a 0600 config.yaml is readable on Linux as well as
+# macOS. Not the invoking user: with no capabilities even root cannot read
+# another user's 0600 file, so `sudo ./dockerRun.sh`, or a config.yaml saved
+# by `sudo nano` (now owned by root), failed with "permission denied".
 #
 # The file is only mounted when it exists. Mounting a missing file makes Docker
 # create an empty *directory* in its place, which then breaks every later run.
 config_run() {
   local mount=()
+  local owner="$( id -u ):$( id -g )"
   if [ -f "$CONFIG_FILE" ]; then
     mount=( -v "${CONFIG_FILE}:/app/config.yaml:ro" )
+    # GNU stat (Linux) first, then BSD stat (macOS).
+    owner="$( stat -c '%u:%g' "$CONFIG_FILE" 2>/dev/null || stat -f '%u:%g' "$CONFIG_FILE" )"
   fi
   docker run --rm --network none --read-only --cap-drop ALL \
-    --user "$( id -u ):$( id -g )" \
+    --user "$owner" \
     ${mount[@]+"${mount[@]}"} \
     "$IMAGE_ID" config "$@"
 }
