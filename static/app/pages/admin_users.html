@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Users — Admin</title>
+<link rel="stylesheet" href="/app/css/app.css">
+<link rel="stylesheet" href="/app/css/pages/admin_users.css">
+</head>
+<body>
+<main class="card wide">
+  <div class="row between">
+    <h1>👥 Users</h1>
+    <a class="btn ghost small" href="/admin">← Admin</a>
+  </div>
+
+  <div class="searchbar">
+    <input id="q" class="search" placeholder="Search by name…" autocomplete="off" autofocus>
+    <button id="searchBtn" class="btn" type="button">Search</button>
+  </div>
+
+  <div id="list" class="list"></div>
+  <div id="editor"></div>
+</main>
+
+<script src="/app/js/mct-api.js"></script>
+<script src="/app/js/pages/admin_users.js"></script>
+<script src="/app/js/verified.js"></script>
+<script src="/app/js/field_labels.js"></script>
+<script src="/vendor/qr-code-styling.min.js"></script>
+<script src="/app/js/qr.js"></script>
+</body>
+</html>

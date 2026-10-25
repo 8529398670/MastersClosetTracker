@@ -1,0 +1,120 @@
+# ===========================================================================
+# config.site.example.yaml -- every setting with its default. Safe to commit: it has
+# no keys. config.site.yaml itself is gitignored, so a fresh clone starts from
+# this file.
+#
+# To use it:
+#
+#   cp config.site.example.yaml config.site.yaml
+#   chmod 600 config.site.yaml
+#   openssl rand -hex 32        # paste into server.secret_key (and any
+#                               # other empty *_key the file asks for)
+#
+# Or skip the copy: `mct-site config init` writes config.site.yaml with fresh
+# keys already in it.
+#
+# This file is generated from the embedded defaults in server/config/. After
+# changing a default there, regenerate it with `mct-site config example`.
+# ===========================================================================
+# Masters Closet Site (`mct-site`) -- the one configuration file.
+#
+# The site is the closet's public website: the landing page with the
+# calendar, a family's phone pass (/p), and the pre-signup form (/join). It
+# serves static files and nothing else -- no database, no accounts, no API --
+# so it holds no secret, and there is nothing behind it to probe or brute
+# force. A family's barcode reaches it only after the "#" in a link, which a
+# browser never sends to a server. Nothing reads environment variables. Every
+# key is optional; a key you leave out takes the value shown in this file.
+#
+# Where it is read from, first match wins:
+#
+#   --config <path>                    an explicit file
+#   ./config.site.yaml                 a source checkout; also what
+#                                      dockerRunSite.sh reads
+#   ~/.config/mct-site/config.yaml     a portable binary run anywhere else
+#
+# If none exists the site writes the last one on first run.
+# `mct-site config init` writes ./config.site.yaml the same way.
+#
+# Relative paths in server: resolve against the directory holding this file.
+# Relative paths in docker: and build: resolve against the project directory.
+#
+# An unknown key -- or a station- or hub-only section -- is an error.
+
+app:
+  # Shown in the startup log.
+  name: "Master's Closet Site"
+
+server:
+  # Behind a reverse proxy on the same host, 127.0.0.1 is right. Ignored in
+  # the container, which listens on 0.0.0.0 (see docker.bind_address).
+  host: 127.0.0.1
+  port: 8070
+
+  # The site keeps no data; this directory only ever stays empty. Empty
+  # means ~/.config/mct-site/.
+  app_dir: ""
+
+  # Where the pages come from when running from a source checkout. A built
+  # binary that finds no such directory uses its embedded copy. Either way
+  # only the site's own files are served (static/site/ and the few shared
+  # assets it uses) -- never the station's pages.
+  static_dir: ./static
+  language_file: ""
+
+  # Unused by the site (no data, no cookies); kept so the configs share one
+  # schema.
+  encrypt_at_rest: false
+  secure_cookies: true
+  cookie_name: session
+
+  # See the station config for the full explanation.
+  trust_proxy: false
+  trusted_proxies: []
+  proxy_header: X-Forwarded-For
+
+  # The site accepts no request bodies worth the name.
+  body_limit_bytes: 16384          # 16 KiB
+
+  # Per client address. 0 switches it off.
+  rate_limit_max: 600
+  rate_limit_window_seconds: 60
+
+  # Unused by the site (it has no admin commands).
+  control_socket: false
+
+site:
+  # Where /ical sends people: the closet's public calendar feed. Empty
+  # makes /ical a 404.
+  ical_url: "https://calendar.google.com/calendar/ical/masters.closet.5950%40gmail.com/public/basic.ics"
+
+docker:
+  image: mct-site
+  container: mct-site
+
+  # The host side of the published port. Put nginx/Caddy/Traefik in front
+  # for TLS.
+  bind_address: 127.0.0.1
+  host_port: 8070
+
+  # Host directory mounted at /app/data. The site writes nothing there, but
+  # it must still differ from the station's and the hub's.
+  data_dir: ./data-site
+
+  restart: unless-stopped          # no | always | unless-stopped | on-failure[:N]
+
+  memory: 64m
+  cpus: "0.5"
+  pids_limit: 64
+  tmpfs_size: 8m                   # the only writable path besides data_dir
+
+build:
+  binary_name: mct-site
+  output_dir: dist
+
+  # The site is meant for a server; add others if you want them.
+  targets:
+    - linux/amd64
+    - linux/arm64
+    - darwin/amd64
+    - darwin/arm64

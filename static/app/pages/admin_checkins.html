@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Check-In History — Admin</title>
+<link rel="stylesheet" href="/app/css/app.css">
+<link rel="stylesheet" href="/app/css/pages/admin_checkins.css">
+</head>
+<body>
+<main class="card wide">
+  <div class="row between">
+    <h1>📅 Check-In History</h1>
+    <span>
+      <a class="btn small" href="/api/visits/export.xlsx">⬇ Download full XLSX</a>
+      <a class="btn ghost small" href="/admin">← Admin</a>
+    </span>
+  </div>
+
+  <div id="banner" class="totals"></div>
+
+  <div class="row" style="gap:14px;margin:6px 0">
+    <label class="small">Sort
+      <select id="order" style="width:auto;display:inline-block;margin-left:4px">
+        <option value="desc">Newest first</option>
+        <option value="asc">Oldest first</option>
+        <option value="busy">Busiest (check-ins)</option>
+        <option value="shopped">Most people shopped for</option>
+      </select>
+    </label>
+  </div>
+  <p class="muted small">Tap a day to open its detail view (opens in a new tab).</p>
+
+  <div id="list" class="list"></div>
+</main>
+
+<script src="/app/js/mct-api.js"></script>
+<script src="/app/js/pages/admin_checkins.js"></script>
+</body>
+</html>

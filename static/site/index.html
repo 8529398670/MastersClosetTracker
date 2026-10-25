@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Master's Closet</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="/app/css/app.css">
+<link rel="stylesheet" href="/site/site.css">
+</head>
+<body class="home-page">
+<div class="home">
+  <header class="home-head">
+    <img src="/app/img/logo.png" alt="Master's Closet">
+    <h1>Welcome to the Master's Closet</h1>
+  </header>
+  <!-- A phone that has saved a pass (or a sign-up code) sees it first. -->
+  <section class="home-saved" id="saved" hidden>
+    <div class="card center" id="savedCard"></div>
+  </section>
+  <nav class="home-actions" id="actions">
+    <a class="btn" id="joinLink" href="/join">✍ Sign up before your first visit</a>
+  </nav>
+  <!-- Public Google calendar of open hours (the same embed v1 served on "/"). -->
+  <iframe
+    class="home-cal"
+    title="Master's Closet Calendar"
+    src="https://calendar.google.com/calendar/embed?height=600&amp;wkst=1&amp;ctz=America%2FNew_York&amp;bgcolor=%23ffffff&amp;src=bWFzdGVycy5jbG9zZXQuNTk1MEBnbWFpbC5jb20&amp;color=%23039BE5"
+    frameborder="0"
+    scrolling="no"></iframe>
+</div>
+<script src="/vendor/qr-code-styling.min.js"></script>
+<script src="/vendor/JsBarcode.all.min.js"></script>
+<script src="/app/js/qr.js"></script>
+<script src="/site/site.js"></script>
+<script src="/site/home.js"></script>
+</body>
+</html>

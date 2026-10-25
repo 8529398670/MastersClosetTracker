@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings — Master's Closet</title>
+<link rel="stylesheet" href="/app/css/app.css">
+</head>
+<body>
+<main class="card wide">
+  <div class="row between">
+    <h1>⚙ Settings</h1>
+    <a class="btn ghost small" href="/admin">← Back</a>
+  </div>
+  <p class="muted">Edits save to the database and apply live. Fields marked
+    <span class="badge warn">restart</span> take effect after the next restart.</p>
+
+  <div id="form"></div>
+
+  <div class="row between sticky-actions">
+    <span id="status" class="muted small"></span>
+    <button id="save" class="btn" type="button">Save changes</button>
+  </div>
+</main>
+
+<script src="/app/js/mct-api.js"></script>
+<script src="/app/js/pages/settings.js"></script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+# ===========================================================================
+# config.hub.example.yaml -- every setting with its default. Safe to commit: it has
+# no keys. config.hub.yaml itself is gitignored, so a fresh clone starts from
+# this file.
+#
+# To use it:
+#
+#   cp config.hub.example.yaml config.hub.yaml
+#   chmod 600 config.hub.yaml
+#   openssl rand -hex 32        # paste into server.secret_key (and any
+#                               # other empty *_key the file asks for)
+#
+# Or skip the copy: `mct-hub config init` writes config.hub.yaml with fresh
+# keys already in it.
+#
+# This file is generated from the embedded defaults in server/config/. After
+# changing a default there, regenerate it with `mct-hub config example`.
+# ===========================================================================
+# Masters Closet Hub (`mct-hub`) -- the one configuration file.
+#
+# The hub is the relay stations sync through. It stores the latest copy of
+# every record and hands each station what changed since it last asked. It
+# has no web UI and no accounts: stations authenticate with keys made by
+# `mct-hub keys create`. Nothing reads environment variables. Every key is
+# optional; a key you leave out takes the value shown in this file.
+#
+# This file holds the secret key, so treat it like one: mode 0600, never
+# committed (it is in .gitignore), never baked into an image (.dockerignore).
+#
+# Where it is read from, first match wins:
+#
+#   --config <path>                    an explicit file; with no app_dir its
+#                                      state goes in <name>.data/ beside it
+#   ./config.hub.yaml                  a source checkout; also what
+#                                      dockerRunHub.sh reads
+#   ~/.config/mct-hub/config.yaml      a portable binary run anywhere else
+#
+# If none exists the hub writes the last one, with a fresh secret key, on
+# first run. `mct-hub config init` writes ./config.hub.yaml the same way.
+#
+# Relative paths in server: resolve against the directory holding this file.
+# Relative paths in docker: and build: resolve against the project directory.
+#
+# An unknown key -- or a station-only section -- is an error.
+
+app:
+  # Shown in the startup log.
+  name: "Master's Closet Hub"
+
+server:
+  # Behind a reverse proxy on the same host, 127.0.0.1 is right. Ignored in
+  # the container, which listens on 0.0.0.0 (see docker.bind_address).
+  host: 127.0.0.1
+  port: 8090
+
+  # Where the database and the control socket live. Empty means
+  # ~/.config/mct-hub/. Ignored inside the container (/app/data).
+  app_dir: ""
+
+  # Unused by the hub (it serves no pages); kept so the two configs share one
+  # schema.
+  static_dir: ./static
+  language_file: ""
+
+  # Encrypts every value the hub stores. 64 hex characters, generated when
+  # this file is created. A different key cannot read the database -- but a
+  # lost hub is recoverable: start an empty one and every station re-pushes
+  # what it has (see README, "Hub recovery").
+  secret_key: ""
+  encrypt_at_rest: true
+
+  # Unused by the hub (no cookies); kept so the two configs share one schema.
+  secure_cookies: true
+  cookie_name: session
+
+  # See the station config for the full explanation. Stations reach the hub
+  # through the closet's internet connection, so behind a proxy turn this on
+  # with the proxy's address in trusted_proxies.
+  trust_proxy: false
+  trusted_proxies: []
+  proxy_header: X-Forwarded-For
+
+  # Must exceed hub.max_push_bytes by at least 64 KiB of headroom.
+  body_limit_bytes: 1048576        # 1 MiB
+
+  # Per client address, before any key is checked. /sync/ is limited per
+  # key instead (hub.key_rate_limit_max), because every station in the
+  # closet shares one public address. 0 switches this one off.
+  rate_limit_max: 600
+  rate_limit_window_seconds: 60
+
+  # Lets `mct-hub keys ...` reach the database through the running hub.
+  control_socket: true
+
+hub:
+  # Largest push a station may send in one request, and largest single
+  # record. Stations split their pushes to fit.
+  max_push_bytes: 524288           # 512 KiB
+  max_doc_bytes: 262144            # 256 KiB
+
+  # A record stamped further than this into the future (by the hub's clock)
+  # is refused, so one laptop with a wrong clock cannot win every conflict
+  # forever. The station corrects its stamps and retries.
+  max_future_seconds: 300
+
+  # Most records one pull returns. A fresh station pages through.
+  pull_page_max: 1000
+
+  # Requests per window per station key. 0 switches it off.
+  key_rate_limit_max: 1200
+  key_rate_limit_window_seconds: 60
+
+docker:
+  image: mct-hub
+  container: mct-hub
+
+  # The host side of the published port. Put nginx/Caddy/Traefik in front
+  # for TLS: station keys cross the wire on every request.
+  bind_address: 127.0.0.1
+  host_port: 8090
+
+  # Host directory mounted at /app/data. Must differ from the station's.
+  data_dir: ./data-hub
+
+  restart: unless-stopped          # no | always | unless-stopped | on-failure[:N]
+
+  memory: 256m
+  cpus: "1"
+  pids_limit: 128
+  tmpfs_size: 16m                  # the only writable path besides data_dir
+
+build:
+  binary_name: mct-hub
+  output_dir: dist
+
+  # The hub is meant for a server; add others if you want them.
+  targets:
+    - linux/amd64
+    - linux/arm64
+    - darwin/amd64
+    - darwin/arm64

@@ -1,0 +1,17 @@
+.git
+.gitignore
+data/
+data-hub/
+data-site/
+*.db
+config.yaml
+# The hub and site configs too (the hub's holds its secret key).
+config.*.yaml
+!config.*example.yaml
+*.md
+Dockerfile
+dockerRun.sh
+dist/
+.run/
+run.sh
+run.bat

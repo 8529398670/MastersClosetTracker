@@ -1,0 +1,18 @@
+/* Styles for admin_users.html, moved out of the page so the Content-Security-Policy
+   can refuse inline styles. */
+  /* Family-member rows: age + sex + spouse on one line (wraps on mobile). */
+  .fm-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+  .fm-row .fm-age { width: 90px; flex: 0 0 auto; }
+  .fm-row .fm-sex { width: 130px; flex: 0 0 auto; }
+  .fm-row .fm-spouse { display: flex; align-items: center; gap: 6px; font-size: .85rem; white-space: nowrap; }
+  .fm-row .fm-spouse input { width: auto; }
+  .fm-row .btn { flex: 0 0 auto; }
+  /* The handoff QR box only takes room while it shows a code. */
+  #qrBox.has-qr { padding-top: 20px; }
+  /* Family members and barcodes share a row on wider screens; barcodes are
+     short, so their boxes are about half the old full width. */
+  .fm-bc { display: grid; grid-template-columns: 1fr; gap: 0 32px; }
+  .fm-bc .bc-row input { max-width: 240px; }
+  @media (min-width: 760px) {
+    .fm-bc { grid-template-columns: auto minmax(220px, 300px); align-items: start; }
+  }

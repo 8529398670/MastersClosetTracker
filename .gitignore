@@ -1,0 +1,37 @@
+# Runtime state -- never commit these. The config files hold secret keys.
+.DS_Store
+config.yaml
+config.hub.yaml
+config.*.yaml
+!config.example.yaml
+!config.hub.example.yaml
+!config.site.example.yaml
+data/
+data-hub/
+data-site/
+*.data/
+*.db
+# Exports carry every client's details.
+*.jsonl.gz
+
+# Compiled output. Built by the Dockerfile, build.sh, or `go build`.
+#
+# The trailing negations matter: a bare "/server" also matches the server/
+# source directory, which silently keeps the entire backend out of the
+# repository. Ignore the binaries, then put the directories back.
+/server
+!/server/
+/manage
+!/manage/
+/masters-closet-tracker
+/masters-closet-tracker.exe
+/mct
+/mct.exe
+/mct-hub
+/mct-hub.exe
+/mct-site
+/mct-site.exe
+dist/
+
+# run.sh's pid file and run.bat's staged build.
+.run/

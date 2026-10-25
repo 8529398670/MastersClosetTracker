@@ -1,0 +1,18 @@
+# ===========================================================================
+# {{EXAMPLE_FILE}} -- every setting with its default. Safe to commit: it has
+# no keys. {{LOCAL_FILE}} itself is gitignored, so a fresh clone starts from
+# this file.
+#
+# To use it:
+#
+#   cp {{EXAMPLE_FILE}} {{LOCAL_FILE}}
+#   chmod 600 {{LOCAL_FILE}}
+#   openssl rand -hex 32        # paste into server.secret_key (and any
+#                               # other empty *_key the file asks for)
+#
+# Or skip the copy: `{{BINARY}} config init` writes {{LOCAL_FILE}} with fresh
+# keys already in it.
+#
+# This file is generated from the embedded defaults in server/config/. After
+# changing a default there, regenerate it with `{{BINARY}} config example`.
+# ===========================================================================

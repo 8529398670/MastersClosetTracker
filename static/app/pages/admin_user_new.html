@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New User — Admin</title>
+<link rel="stylesheet" href="/app/css/app.css">
+</head>
+<body>
+<main class="card wide">
+  <div class="row between">
+    <h1>➕ New User</h1>
+    <span class="row nowrap" style="gap:14px"><span id="verifiedSlot"></span><a class="btn ghost small" href="/admin">← Admin</a></span>
+  </div>
+
+  <!-- The form itself is /app/js/user_form.js, shared with the check-in page's
+       inline New User panel so the two cannot drift apart. -->
+  <div id="formWrap">
+    <div id="userForm"></div>
+    <button class="btn" id="createBtn" type="button">Create user</button>
+    <span id="msg" class="muted small"></span>
+  </div>
+
+  <div id="done" style="display:none" class="center">
+    <div class="status ok">✓ Created <span id="who"></span></div>
+    <p class="muted">Have the guest scan this with their phone camera to keep their pass on the phone:</p>
+    <div id="qr" class="center" style="display:inline-block"></div>
+    <p class="small"><a id="freshLink" href="#" target="_blank"></a></p>
+    <div class="actions">
+      <a id="checkinLink" class="btn" href="#">🛒 Check this user in</a>
+      <a id="editLink" class="btn ghost" href="#">✏️ Edit</a>
+      <a class="btn ghost" href="/admin/user/new">Create another</a>
+    </div>
+  </div>
+</main>
+
+<script src="/app/js/mct-api.js"></script>
+<script src="/app/js/verified.js"></script>
+<script src="/app/js/field_labels.js"></script>
+<script src="/app/js/user_form.js"></script>
+<script src="/app/js/pages/admin_user_new.js"></script>
+<script src="/vendor/qr-code-styling.min.js"></script>
+<script src="/app/js/qr.js"></script>
+</body>
+</html>

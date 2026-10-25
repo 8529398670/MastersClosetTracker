@@ -1,0 +1,11 @@
+{
+  "name": "Master's Closet",
+  "short_name": "Master's Closet",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#913C67",
+  "icons": [
+    { "src": "/app/img/logo.png", "sizes": "any", "type": "image/png" }
+  ]
+}

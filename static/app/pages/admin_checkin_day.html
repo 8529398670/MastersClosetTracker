@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Check-Ins — Day — Admin</title>
+<link rel="stylesheet" href="/app/css/app.css">
+<link rel="stylesheet" href="/app/css/pages/admin_checkin_day.css">
+</head>
+<body>
+<main class="card wide">
+  <div class="row between">
+    <h1 id="title">📅 Check-Ins</h1>
+    <span>
+      <a id="dl" class="btn small" href="#">⬇ Download this day</a>
+      <a class="btn ghost small" href="/admin/checkins">← All days</a>
+    </span>
+  </div>
+
+  <div class="row" style="gap:8px;margin:6px 0 2px" id="pills"></div>
+  <div id="content"></div>
+</main>
+
+<script src="/app/js/mct-api.js"></script>
+<script src="/app/js/pages/admin_checkin_day.js"></script>
+</body>
+</html>

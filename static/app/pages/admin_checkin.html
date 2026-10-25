@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Check-In — Admin</title>
+<link rel="stylesheet" href="/app/css/app.css">
+<link rel="stylesheet" href="/app/css/pages/admin_checkin.css">
+</head>
+<body>
+<main class="card wide">
+  <div class="row between">
+    <h1>🛒 Check-In</h1>
+    <a class="btn ghost small" href="/admin">← Admin</a>
+  </div>
+
+  <!-- Last person's confirmation. Lives outside #panel because printing clears
+       the panel away, and the operator still needs to see what just happened. -->
+  <div id="flash" class="status ok" style="display:none"></div>
+
+  <div class="searchbar">
+    <input id="lookup" class="search" placeholder="Scan a barcode, or type a name…" autofocus autocomplete="off">
+    <button id="newUserBtn" class="btn ghost" type="button">＋ New User</button>
+    <button id="clearBtn" class="btn ghost" type="button">Clear</button>
+  </div>
+  <div id="results" class="list"></div>
+
+  <!-- Walk-ins get created here rather than on /admin/user/new, so the desk never
+       navigates away mid-queue. Same form module as that page. -->
+  <div id="newUserPanel" class="section" style="display:none">
+    <div class="row between" style="margin-bottom:8px"><h2 style="margin:0">New User</h2><span id="newUserVerified"></span></div>
+    <div id="newUserForm"></div>
+    <div class="row">
+      <button id="createUserBtn" class="btn" type="button">Create &amp; check in</button>
+      <button id="cancelUserBtn" class="btn ghost" type="button">Cancel</button>
+      <span id="newUserMsg" class="muted small"></span>
+    </div>
+  </div>
+
+  <div id="panel" style="display:none">
+    <section class="section">
+      <div class="row between"><h2 id="who" style="margin:0"></h2><span id="verifiedSlot"></span></div>
+      <div id="cooloff" class="status"></div>
+
+      <!-- Primary action first, for a fast check-in -->
+      <div class="row" style="margin:8px 0">
+        <button id="checkinBtn" class="btn" style="font-size:1.05rem;padding:14px 26px">🖨 Print</button>
+        <button id="editBtn" class="btn ghost small" type="button">✏️ Edit</button>
+        <button id="qrBtn" class="btn ghost small" type="button">Show Handoff QR</button>
+      </div>
+      <!-- Printing status, and the reprint / check-in-again choice after a
+           family was just checked in. Its own line, so the row above stays put. -->
+      <div id="result" class="small"></div>
+      <div id="qrBox" class="center"></div>
+
+      <h2>Shopping For :</h2>
+      <div id="shopFor" style="margin:10px 0 4px">
+        <div id="shopChips" class="row" style="gap:8px"></div>
+        <div id="guestNote" class="muted small" style="margin-top:6px"></div>
+        <div id="guestPrintWrap" class="row small" style="display:none;gap:6px;margin-top:4px">
+          <label class="row" style="gap:6px;margin:0;font-weight:600">
+            <input type="checkbox" id="guestPrint" style="width:auto;margin:0"> Also print individual guest tickets
+          </label>
+        </div>
+      </div>
+
+      <h2>Ticket :</h2>
+      <p id="langPrintNote" class="muted small center" style="display:none"></p>
+      <!-- Each line is [pre text][editable number][post text]; only the text
+           spans are swapped per language, so the inputs keep focus + values. -->
+      <div class="ticket">
+        <img class="logo" src="/app/img/logo.png" alt="Master's Closet">
+        <div class="t-fam" id="line_fam"><span class="pre"></span><input id="t_for" class="tnum" type="number" min="0" value="1"><span class="post"></span></div>
+        <div class="t-total" id="line_total"><span class="pre"></span><span id="t_total">6</span><span class="post"></span></div>
+        <div class="t-guests" id="line_guests" style="display:none"><span class="pre"></span><span id="t_guests">0</span><span class="post"></span></div>
+        <div class="t-per">
+          <div class="hdr" id="line_perperson"></div>
+          <div class="item" id="line_clothing"><span class="pre"></span><input id="t_clothing" class="tnum" type="number" min="0" value="6"><span class="post"></span></div>
+          <div class="item" id="line_pants"><span class="pre"></span><input id="t_pants" class="tnum" type="number" min="0" value="0"><span class="post"></span></div>
+          <div class="item" id="line_shoes"><span class="pre"></span><input id="t_shoes" class="tnum" type="number" min="0" value="0"><span class="post"></span></div>
+          <div class="item" id="line_acc"><span class="pre"></span><input id="t_acc" class="tnum" type="number" min="0" value="0"><span class="post"></span></div>
+          <div class="item" id="line_seasonal"><span class="pre"></span><input id="t_seasonal" class="tnum" type="number" min="0" value="0"><span class="post"></span></div>
+        </div>
+        <!-- With the phone pass QR on (Settings → Ticket) the printer puts it
+             left of the name and barcode; .with-qr mirrors that. -->
+        <div class="t-bottom" id="t_bottom">
+          <div class="t-qr" id="t_qr" title="Phone pass QR (Settings → Ticket)"></div>
+          <div class="t-name"><input id="t_name" class="tname-input" placeholder="Family Name"></div>
+          <div class="bc" id="t_barcode">barcode assigned at check-in</div>
+        </div>
+      </div>
+
+      <h2 class="muted">Current Balance <span class="small">(reference)</span></h2>
+      <table id="balance"><thead><tr><th>Category</th><th>Available</th><th>Limit</th><th>Used</th></tr></thead><tbody></tbody></table>
+    </section>
+  </div>
+</main>
+
+<script src="/app/js/mct-api.js"></script>
+<script src="/app/js/verified.js"></script>
+<script src="/app/js/field_labels.js"></script>
+<script src="/app/js/user_form.js"></script>
+<script src="/app/js/presignup.js"></script>
+<script src="/app/js/pages/admin_checkin.js"></script>
+<script src="/vendor/qr-code-styling.min.js"></script>
+<script src="/app/js/qr.js"></script>
+</body>
+</html>

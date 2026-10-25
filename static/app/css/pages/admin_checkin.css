@@ -1,0 +1,37 @@
+/* Styles for admin_checkin.html, moved out of the page so the Content-Security-Policy
+   can refuse inline styles. */
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); font-size: .9rem; }
+  th { color: var(--muted); font-weight: 600; }
+  /* WYSIWYG print-ticket preview (mirrors the 4x6 label) */
+  .ticket { max-width: 360px; margin: 6px auto; border: 2px dashed var(--line); border-radius: 12px; padding: 18px 16px 22px; text-align: center; background: #fff; }
+  .ticket img.logo { width: 150px; margin: 0 auto 12px; }
+  .ticket .t-fam { font-size: 1.25rem; font-weight: 800; margin: 4px 0; }
+  .ticket .t-total { font-size: 1rem; margin-bottom: 12px; }
+  .ticket .t-guests { font-size: 1rem; font-weight: 700; margin: -4px 0 12px; }
+  .ticket .t-per { text-align: left; display: inline-block; }
+  .ticket .t-per .hdr { font-weight: 700; margin: 4px 0; }
+  .ticket .t-per .item { margin: 5px 0; white-space: nowrap; }
+  /* The phone pass QR the printer draws left of the name and barcode (only
+     with Settings → Ticket on). */
+  .ticket .t-qr { display: none; width: 96px; min-height: 96px; align-items: center; justify-content: center;
+    color: var(--muted); font-size: .7rem; line-height: 1.2; }
+  .ticket .t-qr img { display: block; width: 96px; height: 96px; }
+  .ticket .t-bottom.with-qr { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: center; margin-top: 12px; }
+  .ticket .t-bottom.with-qr .t-qr { display: flex; grid-row: 1 / span 2; }
+  .ticket .t-bottom.with-qr .t-name { margin: 0 0 4px; }
+  .ticket .t-name { font-size: 1.1rem; font-weight: 700; margin: 14px 0 10px; }
+  .ticket .bc { font-family: monospace; letter-spacing: 1px; color: var(--muted); }
+  .tnum { width: 56px; text-align: center; padding: 4px 6px; font-weight: 700; display: inline-block; }
+  .tname-input { max-width: 260px; text-align: center; font-weight: 700; margin: 0 auto; }
+  /* "Shopping for" overview chips */
+  .sf-group { display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid var(--line); border-radius: 10px; padding: 4px 8px; }
+  .sf-group label { font-size: .85rem; font-weight: 600; color: var(--muted); }
+  .sf-group input { width: 52px; text-align: center; padding: 4px 6px; }
+  .sf-group.sf-guests { border-style: dashed; }
+  .sf-toggle { font-weight: 700; }
+  /* Under the Print row: status text and the reprint / again choice. Empty
+     takes no room. */
+  #result:not(:empty) { margin: 4px 0 8px; }
+  /* The handoff QR box only takes room while it shows a code. */
+  #qrBox.has-qr { margin: 12px 0; }

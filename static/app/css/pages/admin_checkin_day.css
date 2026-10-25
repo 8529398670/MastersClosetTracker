@@ -1,0 +1,23 @@
+/* Styles for admin_checkin_day.html, moved out of the page so the Content-Security-Policy
+   can refuse inline styles. */
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 16px; font-size: .86rem; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; user-select: none; }
+  th.num, td.num { text-align: right; }
+  /* Rows the "Delete duplicates" button will remove: a step darker than the
+     --wait-bg the duplicate pill uses, plus a red edge to catch the eye. */
+  tr.dup { background: #fecaca; box-shadow: inset 3px 0 0 var(--err); }
+  /* A family's first visit ever: a green wash and edge. A duplicate's red
+     (listed first) still wins, since that row is about to be deleted. */
+  tr.new { background: var(--ok-bg); box-shadow: inset 3px 0 0 var(--ok); }
+  tr.dup.new { background: #fecaca; box-shadow: inset 3px 0 0 var(--err); }
+  .badge-new { display: inline-block; margin-left: 4px; padding: 1px 7px; border-radius: 10px; background: var(--ok); color: #fff; font-size: .7rem; font-weight: 700; }
+  .pill.new { background: var(--ok-bg); color: var(--ok); }
+  .scroll { overflow-x: auto; }
+  .del { color: var(--err); cursor: pointer; border: 0; background: none; font-size: 1rem; }
+  .pill { background: var(--line); color: var(--muted); border-radius: 20px; padding: 3px 11px; font-size: .78rem; font-weight: 700; }
+  .pill.b { background: #f3e8ef; color: var(--brand); }
+  .pill.dup { background: var(--wait-bg); color: var(--err); }
+  .pill.m { background: var(--warn-bg); color: var(--warn); }
+  .manual { display: flex; align-items: center; gap: 6px; font-size: .82rem; }
+  .manual input { width: 74px; padding: 5px 8px; }

@@ -1,0 +1,35 @@
+/* The public site's pages (static/site/). app.css supplies the tokens, the
+   card and the buttons; this adds the landing page layout and the pass card. */
+
+/* --- landing page: header, the saved pass if any, then the calendar -------- */
+body.home-page { margin: 0; padding: 0; background: #fff; }
+.home { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+.home-head { flex: 0 0 auto; text-align: center; padding: 14px 12px 10px; }
+.home-head img { display: block; width: 240px; max-width: 70%; height: auto; margin: 0 auto 6px; }
+.home-head h1 { font-size: 1.25rem; margin: 0; }
+.home-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 4px 12px 12px; }
+.home-saved { padding: 0 12px 12px; }
+/* The iframe is the flex item itself: a percentage height would not resolve
+   against an auto-height parent and would silently fall back to the browser's
+   default 150px iframe box. flex:1 fills whatever the header leaves. */
+.home-cal { flex: 1 1 auto; display: block; width: 100%; min-height: 420px; border: 0; }
+
+/* --- the pass card: what the front desk scanner reads off the screen ------- */
+.pass-tabs { display: inline-flex; border: 1.5px solid var(--brand); border-radius: 10px; overflow: hidden; margin-bottom: 14px; }
+.pass-tab { border: 0; background: transparent; color: var(--brand); font-weight: 700; padding: 8px 16px; cursor: pointer; font-size: .9rem; }
+.pass-tab.on { background: var(--brand); color: var(--brand-ink); }
+/* Scanners want a light, even background around the code. */
+.pass-code { display: flex; justify-content: center; background: #fff; border-radius: 12px; padding: 14px; }
+.pass-code svg, .pass-code canvas, .pass-code img { max-width: 100%; height: auto; }
+.pass-number { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 1.15rem; letter-spacing: .12em; margin: 10px 0 4px; word-break: break-all; }
+.pass-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 12px; }
+
+/* --- pre-signup form --------------------------------------------------------- */
+.fm-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.fm-row { display: grid; grid-template-columns: auto 1fr auto auto; gap: 6px; align-items: center; }
+.fm-row input[type=number] { width: 64px; }
+.fm-row label { display: flex; flex-direction: row; align-items: center; gap: 4px; margin: 0; font-size: .85rem; }
+.fm-row input[type=checkbox] { width: auto; margin: 0; }
+.join-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+.join-grid .full { grid-column: 1 / -1; }
+@media (max-width: 420px) { .join-grid { grid-template-columns: 1fr; } }

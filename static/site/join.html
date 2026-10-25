@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign Up — Master's Closet</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="/app/css/app.css">
+<link rel="stylesheet" href="/site/site.css">
+</head>
+<body>
+<main class="card">
+  <div class="center"><a href="/"><img class="logo" src="/app/img/logo.png" alt="Master's Closet"></a></div>
+  <h1>Sign up before your first visit</h1>
+  <p class="muted small">Fill this in on your phone. It turns into a QR code you show at the front desk — nothing is sent anywhere until we scan it together.</p>
+
+  <form id="form" novalidate>
+    <label class="field"><span class="field-head">Language<span class="field-tr" data-lk="language"></span></span>
+      <select name="language" id="language"></select></label>
+    <div class="join-grid">
+      <label class="field"><span class="field-head">First name<span class="field-tr" data-lk="first_name"></span></span><input name="first_name" autocomplete="given-name" required></label>
+      <label class="field"><span class="field-head">Last name<span class="field-tr" data-lk="last_name"></span></span><input name="last_name" autocomplete="family-name" required></label>
+      <label class="field full"><span class="field-head">Middle name<span class="field-tr" data-lk="middle_name"></span></span><input name="middle_name" autocomplete="additional-name"></label>
+      <label class="field"><span class="field-head">Phone<span class="field-tr" data-lk="phone"></span></span><input name="phone_number" type="tel" autocomplete="tel"></label>
+      <label class="field"><span class="field-head">Email<span class="field-tr" data-lk="email"></span></span><input name="email_address" type="email" autocomplete="email"></label>
+      <label class="field"><span class="field-head">Street #<span class="field-tr" data-lk="street_number"></span></span><input name="street_number" inputmode="numeric"></label>
+      <label class="field"><span class="field-head">Street name<span class="field-tr" data-lk="street_name"></span></span><input name="street_name" autocomplete="address-line1"></label>
+      <label class="field"><span class="field-head">City<span class="field-tr" data-lk="city"></span></span><input name="city" autocomplete="address-level2"></label>
+      <label class="field"><span class="field-head">State<span class="field-tr" data-lk="state"></span></span><input name="state" autocomplete="address-level1"></label>
+      <label class="field"><span class="field-head">Zip<span class="field-tr" data-lk="zip"></span></span><input name="zipcode" inputmode="numeric" autocomplete="postal-code"></label>
+    </div>
+    <div class="field">
+      <span class="field-head">Others in your family<span class="field-tr" data-lk="family_members"></span></span>
+      <span class="muted small">Everyone you shop for besides yourself.</span>
+      <div class="fm-list" id="members"></div>
+      <button class="btn ghost small" type="button" id="addMember" style="align-self:flex-start">＋ Add family member</button>
+    </div>
+    <p id="msg" class="small"></p>
+    <button class="btn" type="submit">Make my QR code</button>
+  </form>
+
+  <section id="result" class="center" hidden>
+    <h2>Your sign-up code</h2>
+    <div id="codeCard"></div>
+  </section>
+</main>
+<script src="/vendor/qr-code-styling.min.js"></script>
+<script src="/app/js/qr.js"></script>
+<script src="/app/js/field_labels.js"></script>
+<script src="/app/js/presignup.js"></script>
+<script src="/site/site.js"></script>
+<script src="/site/join.js"></script>
+</body>
+</html>
