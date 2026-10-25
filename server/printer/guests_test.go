@@ -31,7 +31,7 @@ func TestRenderWithPassQR(t *testing.T) {
 	job := Job{
 		FamilySize: 3, TotalClothingItems: 18, ClothingPerPerson: 6, FamilyName: "Smith",
 		BarcodeNumber: "9123456789", Guests: 2,
-		PassURL: "https://masterscloset.cc/p#9123456789",
+		PassURL: "https://masterscloset.cc/#9123456789",
 	}
 	for _, guest := range []int{0, 1} {
 		job.GuestNumber = guest

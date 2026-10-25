@@ -180,6 +180,7 @@ type DockerSection struct {
 type BuildSection struct {
 	BinaryName string   `yaml:"binary_name"`
 	OutputDir  string   `yaml:"output_dir"`
+	PublishDir string   `yaml:"publish_dir"`
 	Targets    []string `yaml:"targets"`
 }
 
@@ -604,6 +605,7 @@ func ( file *File ) validateAs( profile *Profile ) ( err error ) {
 	build := file.Build
 	check( binaryPattern.MatchString( build.BinaryName ) , "build.binary_name %q must be a plain file name" , build.BinaryName )
 	check( path_ok( build.OutputDir ) , "build.output_dir must be a path with no ':' in it" )
+	check( strings.ContainsAny( build.PublishDir , "\n\r" ) == false , "build.publish_dir must be a single line" )
 	check( len( build.Targets ) > 0 , "build.targets must list at least one os/arch" )
 	for _ , target := range build.Targets {
 		check( targetPattern.MatchString( target ) , "build.targets entry %q must look like linux/amd64" , target )

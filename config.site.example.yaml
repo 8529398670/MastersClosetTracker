@@ -19,7 +19,7 @@
 # Masters Closet Site (`mct-site`) -- the one configuration file.
 #
 # The site is the closet's public website: the landing page with the
-# calendar, a family's phone pass (/p), and the pre-signup form (/join). It
+# calendar and a family's phone pass (/#<barcode>), and the pre-signup form (/join). It
 # serves static files and nothing else -- no database, no accounts, no API --
 # so it holds no secret, and there is nothing behind it to probe or brute
 # force. A family's barcode reaches it only after the "#" in a link, which a

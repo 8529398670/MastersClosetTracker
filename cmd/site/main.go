@@ -1,9 +1,9 @@
 // Command mct-site is the closet's public website: the landing page with the
-// calendar, a family's offline phone pass (/p), and the offline pre-signup
-// form (/join).
+// calendar and a family's offline phone pass (/#<barcode>), and the offline
+// pre-signup form (/join).
 //
 // It serves static files and nothing else. There is no database, no account,
-// no API: a family's barcode reaches the pass page only after the "#" in the
+// no API: a family's barcode reaches the home page only after the "#" in the
 // link on their ticket, which browsers never send to a server, and the
 // pre-signup form turns into a QR code on the phone itself. So there is
 // nothing here for anyone to probe, brute force, or flood with sign-ups.

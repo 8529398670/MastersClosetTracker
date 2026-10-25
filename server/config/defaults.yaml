@@ -117,7 +117,7 @@ auth:
 guests:
   # The public site's address (mct-site, ./cmd/site), e.g.
   # https://masterscloset.cc. Tickets print a QR code linking to
-  # <public_url>/p#<barcode>: the family's phone keeps it as an offline pass,
+  # <public_url>/#<barcode>: the family's phone keeps it as an offline pass,
   # and nothing about the family ever reaches a server. Empty prints no QR.
   public_url: ""
 
@@ -166,6 +166,14 @@ docker:
 build:
   binary_name: mct
   output_dir: dist
+
+  # Where stations pick up updates, e.g. a shared Dropbox folder. After a
+  # successful build, build.sh copies the station binaries there under the
+  # fixed names the stations' launchers run: mct.exe (windows/amd64) with
+  # SumatraPDF.exe beside it, mct (darwin/amd64) and mct_arm (darwin/arm64),
+  # plus this config.yaml, which every station shares. Empty publishes
+  # nothing.
+  publish_dir: ""
 
   # `./build.sh <os/arch> ...` overrides this list for one run.
   targets:

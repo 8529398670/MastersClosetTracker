@@ -69,7 +69,7 @@ type Job struct {
 	// carrying the host family's barcode so it scans to the same user.
 	GuestNumber int `json:"guest_number"`
 	// PassURL, when set, prints as a QR code beside the barcode: a phone that
-	// scans it opens the family's offline pass (see static/site/pass.js).
+	// scans it opens the family's offline pass (see static/site/home.js).
 	PassURL string `json:"pass_url"`
 }
 

@@ -280,6 +280,7 @@ function clearAll() {
   document.getElementById('who').textContent = '';
   document.getElementById('cooloff').textContent = '';
   document.getElementById('cooloff').className = 'status';
+  document.getElementById('checkinBtn').style.display = '';
   document.getElementById('guestNote').textContent = '';
   document.getElementById('shopChips').innerHTML = '';
   document.getElementById('verifiedSlot').innerHTML = '';
@@ -343,10 +344,11 @@ async function openPresignup(text, quiet) {
   presignupOpening = '';
 }
 
-// The digits from a ticket's phone pass link (<site>/p#<barcode>), when the
-// ticket's own QR code is scanned at the desk instead of the barcode.
+// The digits from a ticket's phone pass link (<site>/#<barcode>, or the older
+// <site>/p#<barcode>), when the ticket's own QR code is scanned at the desk
+// instead of the barcode.
 function passLinkBarcode(text) {
-  const match = /\/p#([A-Za-z0-9-]{1,32})\s*$/.exec(text || '');
+  const match = /\/(?:p)?#([A-Za-z0-9-]{1,32})\s*$/.exec(text || '');
   return match ? match[1] : '';
 }
 
@@ -498,11 +500,42 @@ async function load(id) {
   // like every other user attribute. (No onToggle -> renderVerified draws a
   // plain badge instead of a button.)
   renderVerified(document.getElementById('verifiedSlot'), !!u.verified);
-  const co = document.getElementById('cooloff');
-  if (out.allowed) { co.className = 'status ok'; co.textContent = '✓ Cleared to check in'; }
-  else { co.className = 'status wait'; co.textContent = '⏳ Last visit too recent — ' + out.days_remaining + ' day(s) of cooloff left'; }
+  renderCooloff(out, u);
   renderBalance(u.balance);
   document.getElementById('panel').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Cleared families get the plain Print button. A family still in cooloff gets
+// its choices inline on the cooloff line instead -- reprint the last visit's
+// ticket (no new visit), or check in anyway -- and Print is hidden so the
+// desk has to pick one.
+function renderCooloff(out, u) {
+  const co = document.getElementById('cooloff');
+  const print = document.getElementById('checkinBtn');
+  co.innerHTML = '';
+  if (out.allowed) {
+    co.className = 'status ok'; co.textContent = '✓ Cleared to check in';
+    print.style.display = '';
+    return;
+  }
+  co.className = 'status wait row';
+  print.style.display = 'none';
+  const text = document.createElement('span');
+  text.textContent = '⏳ Last visit too recent — ' + out.days_remaining + ' day(s) of cooloff left';
+  co.appendChild(text);
+  const last = (u.check_ins || [])[(u.check_ins || []).length - 1];
+  if (last && last.ULID) {
+    const reprint = document.createElement('button');
+    reprint.type = 'button'; reprint.className = 'btn accent small';
+    reprint.textContent = '🖨 Reprint last ticket';
+    reprint.onclick = () => reprintVisit(last.ULID);
+    co.appendChild(reprint);
+  }
+  const anyway = document.createElement('button');
+  anyway.type = 'button'; anyway.className = 'btn accent ghost small';
+  anyway.textContent = 'Check in anyway';
+  anyway.onclick = () => checkin(false);
+  co.appendChild(anyway);
 }
 
 function renderBalance(b) {

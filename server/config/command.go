@@ -232,6 +232,7 @@ func commandShell( arguments []string ) ( err error ) {
 		lines = [][2]string{
 			{ "build_binary_name" , build.BinaryName },
 			{ "build_output_dir" , build.OutputDir },
+			{ "build_publish_dir" , build.PublishDir },
 			{ "build_targets" , strings.Join( build.Targets , " " ) },
 		}
 	default:

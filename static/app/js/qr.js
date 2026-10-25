@@ -40,7 +40,7 @@ function drawBrandedQR(container, data, opts) {
 }
 
 // renderHandoffQR (staff pages) draws a family's phone pass link: the public
-// site's /p page with their barcode after the "#", which never leaves the
+// site's home page with their barcode after the "#", which never leaves the
 // phone. Scanning it with a phone camera saves the pass there, offline.
 // opts.onURL(url) is told the link once it is known.
 var _sitePublicURL = null;
@@ -53,7 +53,7 @@ function renderHandoffQR(container, barcode, opts) {
       .then(function (d) { _sitePublicURL = d.public_url || ''; return _sitePublicURL; });
   site.then(function (base) {
     if (!base) { container.textContent = 'No public site is set (guests.public_url in config.yaml).'; return; }
-    var url = base + '/p#' + encodeURIComponent(barcode);
+    var url = base + '/#' + encodeURIComponent(barcode);
     if (opts.onURL) opts.onURL(url);
     drawBrandedQR(container, url, opts);
   }).catch(function () { container.textContent = 'Could not make a QR code'; });

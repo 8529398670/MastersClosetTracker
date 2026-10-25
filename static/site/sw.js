@@ -2,10 +2,10 @@
 // at the front desk with no signal. Network first -- the server never lets a
 // page go stale, and neither should this -- falling back to the last copy
 // when the phone is offline.
-var CACHE = 'mct-site-v1';
+var CACHE = 'mct-site-v2';
 var FILES = [
-  '/', '/p', '/join',
-  '/site/site.css', '/site/site.js', '/site/home.js', '/site/pass.js', '/site/join.js',
+  '/', '/join',
+  '/site/site.css', '/site/site.js', '/site/home.js', '/site/join.js',
   '/app/css/app.css', '/app/img/logo.png', '/app/img/verified.png',
   '/app/js/qr.js', '/app/js/presignup.js', '/app/js/field_labels.js',
   '/vendor/qr-code-styling.min.js', '/vendor/JsBarcode.all.min.js',
@@ -29,8 +29,8 @@ self.addEventListener('fetch', function (event) {
   var url = new URL(request.url);
   // Only this site's own GETs; the calendar frame and anything else pass by.
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
-  // The barcode in "/p#..." is never part of the request, so one cached /p
-  // serves every family's link.
+  // The barcode in "/#..." is never part of the request, so one cached home
+  // page serves every family's link.
   event.respondWith(fetch(request).then(function (response) {
     if (response.ok) {
       var copy = response.clone();

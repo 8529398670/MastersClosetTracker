@@ -124,11 +124,11 @@ func run() ( err error ) {
 		err = server.SendPage( c , "site/index.html" )
 		return
 	} )
-	// The barcode rides after the "#", which never reaches this server; the
-	// page reads it in the browser. no-referrer keeps even the path private.
+	// Tickets printed before the pass moved to the home page link to
+	// /p#<barcode>. A redirect with no "#" of its own keeps the original one
+	// (browsers carry it across), so those still land on the pass.
 	app.Get( "/p" , func( c fiber.Ctx ) ( err error ) {
-		c.Set( fiber.HeaderReferrerPolicy , "no-referrer" )
-		err = page( "site/pass.html" , pageCSP )( c )
+		err = c.Redirect().Status( fiber.StatusFound ).To( "/" )
 		return
 	} )
 	app.Get( "/join" , page( "site/join.html" , pageCSP ) )

@@ -8,7 +8,7 @@ import (
 // The public site serves its own pages and the few shared assets -- never a
 // staff page -- and everything it links to is actually embedded.
 func TestAllowedFiles( t *testing.T ) {
-	for _ , name := range []string{ "site/index.html" , "site/pass.html" , "site/join.html" , "site/sw.js" , "app/js/qr.js" , "vendor/JsBarcode.all.min.js" } {
+	for _ , name := range []string{ "site/index.html" , "site/join.html" , "site/sw.js" , "app/js/qr.js" , "vendor/JsBarcode.all.min.js" } {
 		if Allowed( name ) == false {
 			t.Errorf( "%s should be served" , name )
 		}

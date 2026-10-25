@@ -8,8 +8,8 @@ import (
 )
 
 // A family's phone pass lives entirely on the public site (mct-site,
-// static/site/): the ticket's QR code links to <public site>/p#<barcode>,
-// and the part after "#" never reaches any server. The page draws the
+// static/site/): the ticket's QR code links to <public site>/#<barcode>,
+// and the part after "#" never reaches any server. The home page draws the
 // family's barcode for the front desk scanner and keeps it on the phone.
 // So nothing here -- or anywhere on the internet -- answers questions about
 // families; this file only builds those links.
@@ -31,7 +31,7 @@ func familyBarcode( client index.Client ) ( barcode string ) {
 // no public site is configured or there is no barcode to carry.
 func ( handlers *Handlers ) passURL( barcode string ) ( url string ) {
 	if handlers.Config.SitePublicURL == "" || barcode == "" { return }
-	url = handlers.Config.SitePublicURL + "/p#" + barcode
+	url = handlers.Config.SitePublicURL + "/#" + barcode
 	return
 }
 

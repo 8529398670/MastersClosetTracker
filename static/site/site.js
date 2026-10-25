@@ -44,7 +44,7 @@ function el(tag, className, text) {
 
 // renderPassCard draws the family's card into container: a QR code (the
 // barcode number, which a 2D scanner types like a scanned card) or the
-// Code128 barcode itself, the number, and Save / Forget buttons.
+// Code128 barcode itself with its number under it, and Save / Forget buttons.
 function renderPassCard(container, barcode, opts) {
   opts = opts || {};
   container.innerHTML = '';
@@ -75,6 +75,7 @@ function renderPassCard(container, barcode, opts) {
     if (mode !== 'barcode') mode = 'qr';
     qrBox.hidden = mode !== 'qr';
     barBox.hidden = mode !== 'barcode';
+    number.hidden = mode !== 'barcode';
     qrTab.classList.toggle('on', mode === 'qr');
     barTab.classList.toggle('on', mode === 'barcode');
     siteSet(SITE_KEYS.mode, mode);

@@ -87,6 +87,11 @@ for ROLE in "${WHICH[@]}"; do
   eval "$BUILD_CONFIG"
   BINARY_NAME="$build_binary_name"
   OUTPUT_DIR="$build_output_dir"
+  if [ "$ROLE" = "station" ]; then
+    STATION_NAME="$BINARY_NAME"
+    STATION_OUTPUT_DIR="$OUTPUT_DIR"
+    STATION_PUBLISH_DIR="$build_publish_dir"
+  fi
   if [ ${#EXPLICIT_TARGETS[@]} -gt 0 ]; then
     TARGETS=( "${EXPLICIT_TARGETS[@]}" )
   else
@@ -134,6 +139,39 @@ echo ""
 if [ ${#FAILED[@]} -gt 0 ]; then
   echo "Failed: ${FAILED[*]}" >&2
   exit 1
+fi
+
+# Publish: copy the station binaries into build.publish_dir (the shared
+# Dropbox folder), under the fixed names the stations have always run. Only
+# after every build succeeded, so a broken build never reaches a station.
+# Each file is copied to a temporary name and then renamed, so the sync never
+# picks up a half-written binary.
+if [ -n "${STATION_PUBLISH_DIR:-}" ]; then
+  if [ ! -d "$STATION_PUBLISH_DIR" ]; then
+    echo "build.publish_dir ${STATION_PUBLISH_DIR} does not exist (is Dropbox running?); nothing published" >&2
+    exit 1
+  fi
+  publish() {
+    local from="$1" name="$2"
+    if [ ! -f "$from" ]; then
+      echo "  (not built this run, skipped: ${name})"
+      return
+    fi
+    cp "$from" "${STATION_PUBLISH_DIR}/.${name}.partial"
+    mv -f "${STATION_PUBLISH_DIR}/.${name}.partial" "${STATION_PUBLISH_DIR}/${name}"
+    echo "  ${name}"
+  }
+  BUILT="${STATION_OUTPUT_DIR}/${STATION_NAME}_${VERSION}"
+  echo "Publishing to ${STATION_PUBLISH_DIR}"
+  publish "${BUILT}_windows_amd64.exe" "${STATION_NAME}.exe"
+  if [ -f "${BUILT}_windows_amd64.exe" ]; then
+    publish assets/windows/SumatraPDF.exe SumatraPDF.exe
+  fi
+  publish "${BUILT}_darwin_amd64" "${STATION_NAME}"
+  publish "${BUILT}_darwin_arm64" "${STATION_NAME}_arm"
+  # Every station runs on this same config.yaml.
+  publish config.yaml config.yaml
+  echo ""
 fi
 
 cat <<NOTE
