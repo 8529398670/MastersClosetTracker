@@ -278,6 +278,12 @@ func ( handlers *Handlers ) sendWorkbook( c fiber.Ctx , days []export.Day , file
 		err = serverError( c )
 		return
 	}
+	err = sendXLSX( c , content , filename )
+	return
+}
+
+// sendXLSX sends a workbook as a download.
+func sendXLSX( c fiber.Ctx , content []byte , filename string ) ( err error ) {
 	c.Response().Header.Del( fiber.HeaderContentSecurityPolicy )
 	c.Set( fiber.HeaderContentType , "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" )
 	c.Set( fiber.HeaderContentDisposition , fmt.Sprintf( `attachment; filename="%s"` , filename ) )

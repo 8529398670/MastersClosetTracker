@@ -10,8 +10,10 @@
 package closet
 
 import (
+	json "encoding/json"
 	errors "errors"
 	fmt "fmt"
+	sort "sort"
 	strings "strings"
 	sync "sync"
 	time "time"
@@ -91,8 +93,13 @@ func ( service *Service ) barcodeTaken( barcode string ) ( taken bool ) {
 	return
 }
 
-// prepare applies every save-time rule to a profile.
-func ( service *Service ) prepare( client *clients.Client , existing_size int ) ( err error ) {
+// prepare applies every save-time rule to a profile. previous is the
+// record as it was before this save (nil for a new one).
+func ( service *Service ) prepare( client *clients.Client , previous *clients.Client ) ( err error ) {
+	existing_size := 0
+	if previous != nil {
+		existing_size = previous.FamilySize
+	}
 	org := service.Settings.Org()
 	clients.Normalize( client )
 	clients.ClampFamily( client , org.MaxFamilySize , existing_size )
@@ -102,6 +109,7 @@ func ( service *Service ) prepare( client *clients.Client , existing_size int ) 
 		if barcode , err = clients.MintBarcode( service.barcodeTaken ); err != nil { return }
 		client.Barcodes = []string{ barcode }
 	}
+	clients.StampBarcodes( client , previous , service.Now().UTC() )
 	return
 }
 
@@ -117,7 +125,7 @@ func ( service *Service ) CreateClient( input clients.Client ) ( created index.C
 		identity.LastName = fmt.Sprintf( "%06d" , encryption.RandomUint64()%1_000_000 )
 	}
 	client.CreatedAt = service.Now().UTC()
-	if err = service.prepare( &client , 0 ); err != nil { return }
+	if err = service.prepare( &client , nil ); err != nil { return }
 	id := encryption.NewUUID()
 	if _ , err = service.Docs.Put( clients.Collection , id , client ); err != nil { return }
 	created , _ = service.Index.Client( id )
@@ -140,7 +148,7 @@ func ( service *Service ) UpdateClient( id string , input clients.Client , expec
 	}
 	client := input
 	client.CreatedAt = existing.Record.CreatedAt
-	if err = service.prepare( &client , existing.Record.FamilySize ); err != nil { return }
+	if err = service.prepare( &client , &existing.Record ); err != nil { return }
 	if _ , err = service.Docs.PutIf( clients.Collection , id , client , existing.HLC ); err != nil {
 		if errors.Is( err , docs.ErrConflict ) {
 			err = ErrStale
@@ -174,6 +182,358 @@ func ( service *Service ) Similar( id string ) ( matches []index.Client , err er
 		if other.ID == id { continue }
 		if clients.Compare( &target.Record , &other.Record , threshold ).Any() {
 			matches = append( matches , other )
+		}
+	}
+	return
+}
+
+// DuplicateGroup is records that look like the same person registered
+// more than once.
+type DuplicateGroup struct {
+	Members []DuplicateMember
+}
+
+// DuplicateMember is one record in a group and what it has in common with
+// another member ("name", "phone", ...).
+type DuplicateMember struct {
+	Client  index.Client
+	Reasons []string
+}
+
+// duplicateFields are the details compared within a group, in the order
+// they are reported. Only the person-level ones (personal) put records in
+// the same group: a household shares a phone, an email and an address, so
+// those alone would join a mother and daughter, and through them anyone
+// else at that address. A barcode is not one either -- two families end up
+// on one card number when cards are typed in by hand or handed out twice
+// (the barcodes page flags those) -- so it joins two records only when
+// their names are alike too, which catches a misspelled re-registration.
+var duplicateFields = []struct {
+	name     string
+	personal bool
+	keys     func( record *clients.Client ) []string
+}{
+	{ "name" , true , func( record *clients.Client ) []string {
+		first , last := clients.Fold( strings.TrimSpace( record.Identity.FirstName ) ) , clients.Fold( strings.TrimSpace( record.Identity.LastName ) )
+		if first == "" || last == "" { return nil }
+		return []string{ first + "|" + last }
+	} },
+	{ "birthday" , true , func( record *clients.Client ) []string {
+		birthday := record.Identity.DateOfBirth
+		first := clients.Fold( strings.TrimSpace( record.Identity.FirstName ) )
+		if first == "" || birthday.Year == 0 || birthday.Month == "" || birthday.Day == 0 { return nil }
+		return []string{ fmt.Sprintf( "%s|%d|%s|%d" , first , birthday.Year , clients.Fold( birthday.Month ) , birthday.Day ) }
+	} },
+	{ "barcode" , false , func( record *clients.Client ) []string { return record.Barcodes } },
+	{ "phone" , false , func( record *clients.Client ) []string {
+		if phone := strings.TrimSpace( record.PhoneNumber ); phone != "" { return []string{ phone } }
+		return nil
+	} },
+	{ "email" , false , func( record *clients.Client ) []string {
+		if email := clients.Fold( strings.TrimSpace( record.EmailAddress ) ); email != "" { return []string{ email } }
+		return nil
+	} },
+	{ "address" , false , func( record *clients.Client ) []string {
+		address := record.Identity.Address
+		number , street := clients.Fold( strings.TrimSpace( address.StreetNumber ) ) , clients.Fold( strings.Join( strings.Fields( address.StreetName ) , " " ) )
+		if number == "" || street == "" { return nil }
+		return []string{ number + "|" + street }
+	} },
+}
+
+// Duplicates is every group of records that look like the same person:
+// the same first and last name, the same first name and birthday, or a
+// shared barcode with a near-identical name. Largest groups first.
+func ( service *Service ) Duplicates() ( groups []DuplicateGroup ) {
+	groups = []DuplicateGroup{}
+	all := service.Index.Clients()
+	parent := make( []int , len( all ) )
+	for position := range parent {
+		parent[ position ] = position
+	}
+	root := func( position int ) int {
+		for parent[ position ] != position {
+			parent[ position ] = parent[ parent[ position ] ]
+			position = parent[ position ]
+		}
+		return position
+	}
+	keys := make( [][][]string , len( all ) ) // [record][field] -> keys
+	for position := range all {
+		keys[ position ] = make( [][]string , len( duplicateFields ) )
+		for field , spec := range duplicateFields {
+			keys[ position ][ field ] = spec.keys( &all[ position ].Record )
+		}
+	}
+	for field , spec := range duplicateFields {
+		if spec.personal == false { continue }
+		first := map[string]int{}
+		for position := range all {
+			for _ , key := range keys[ position ][ field ] {
+				if key == "" { continue }
+				if seen , ok := first[ key ]; ok {
+					parent[ root( position ) ] = root( seen )
+				} else {
+					first[ key ] = position
+				}
+			}
+		}
+	}
+	threshold := service.Settings.Org().SimilarityThreshold
+	holders := map[string][]int{}
+	for position := range all {
+		for _ , barcode := range all[ position ].Record.Barcodes {
+			if barcode != "" {
+				holders[ barcode ] = append( holders[ barcode ] , position )
+			}
+		}
+	}
+	for _ , positions := range holders {
+		for a := range positions {
+			for b := a + 1; b < len( positions ); b++ {
+				x , y := positions[ a ] , positions[ b ]
+				if clients.Compare( &all[ x ].Record , &all[ y ].Record , threshold ).Name {
+					parent[ root( x ) ] = root( y )
+				}
+			}
+		}
+	}
+	members := map[int][]int{}
+	for position := range all {
+		members[ root( position ) ] = append( members[ root( position ) ] , position )
+	}
+	for _ , positions := range members {
+		if len( positions ) < 2 { continue }
+		// A member's reasons are the details it shares with another member.
+		count := make( []map[string]int , len( duplicateFields ) )
+		for field := range duplicateFields {
+			count[ field ] = map[string]int{}
+			for _ , position := range positions {
+				for _ , key := range keys[ position ][ field ] {
+					count[ field ][ key ]++
+				}
+			}
+		}
+		group := DuplicateGroup{}
+		for _ , position := range positions {
+			member := DuplicateMember{ Client: all[ position ] }
+			for field , spec := range duplicateFields {
+				for _ , key := range keys[ position ][ field ] {
+					if key != "" && count[ field ][ key ] > 1 {
+						member.Reasons = append( member.Reasons , spec.name )
+						break
+					}
+				}
+			}
+			group.Members = append( group.Members , member )
+		}
+		sort.Slice( group.Members , func( a int , b int ) bool {
+			return group.Members[ a ].Client.Record.Name() < group.Members[ b ].Client.Record.Name()
+		} )
+		groups = append( groups , group )
+	}
+	sort.Slice( groups , func( a int , b int ) bool {
+		if len( groups[ a ].Members ) != len( groups[ b ].Members ) {
+			return len( groups[ a ].Members ) > len( groups[ b ].Members )
+		}
+		return groups[ a ].Members[ 0 ].Client.Record.Name() < groups[ b ].Members[ 0 ].Client.Record.Name()
+	} )
+	return
+}
+
+// MergeClients folds others into keep: one family left, with every
+// barcode and every visit. keep's own details win; a detail keep is
+// missing is taken from the others, and keep's family members stay unless
+// it lists none. expect is the version of keep the page saw (zero to
+// skip the check). Visits move first and the others are deleted last, so
+// a failure part way never strands a visit on a deleted family.
+func ( service *Service ) MergeClients( keep string , others []string , expect hlc.Stamp ) ( merged index.Client , err error ) {
+	kept , ok := service.Index.Client( keep )
+	if ok == false {
+		err = ErrNotFound
+		return
+	}
+	if expect.IsZero() == false && expect != kept.HLC {
+		err = ErrStale
+		return
+	}
+	seen := map[string]bool{ keep: true }
+	var sources []index.Client
+	for _ , id := range others {
+		if seen[ id ] {
+			err = ErrInvalid
+			return
+		}
+		seen[ id ] = true
+		other , found := service.Index.Client( id )
+		if found == false {
+			err = ErrNotFound
+			return
+		}
+		sources = append( sources , other )
+	}
+	if len( sources ) == 0 {
+		err = ErrInvalid
+		return
+	}
+
+	record := kept.Record
+	record.Barcodes = append( []string{} , kept.Record.Barcodes... )
+	record.AuthorizedAliases = append( []clients.Person{} , kept.Record.AuthorizedAliases... )
+	assigned := map[string]time.Time{}
+	for barcode , at := range kept.Record.BarcodeAssigned {
+		assigned[ barcode ] = at
+	}
+	extra := map[string]json.RawMessage{}
+	for name , value := range kept.Record.Extra {
+		extra[ name ] = value
+	}
+	aliases := map[string]bool{}
+	alias_key := func( person clients.Person ) string {
+		return clients.Fold( person.FirstName + " " + person.LastName )
+	}
+	for _ , person := range record.AuthorizedAliases {
+		aliases[ alias_key( person ) ] = true
+	}
+	fill := func( into *string , from string ) {
+		if strings.TrimSpace( *into ) == "" {
+			*into = from
+		}
+	}
+	largest := kept.Record.FamilySize
+	for _ , source := range sources {
+		other := source.Record
+		record.Barcodes = append( record.Barcodes , other.Barcodes... )
+		for barcode , at := range other.BarcodeAssigned {
+			if current , has := assigned[ barcode ]; has == false || at.Before( current ) {
+				assigned[ barcode ] = at
+			}
+		}
+		fill( &record.EmailAddress , other.EmailAddress )
+		fill( &record.PhoneNumber , other.PhoneNumber )
+		fill( &record.Language , other.Language )
+		fill( &record.Identity.MiddleName , other.Identity.MiddleName )
+		if record.Identity.Address == ( clients.Address{} ) {
+			record.Identity.Address = other.Identity.Address
+		}
+		if record.Identity.DateOfBirth == ( clients.DateOfBirth{} ) {
+			record.Identity.DateOfBirth = other.Identity.DateOfBirth
+		}
+		for _ , person := range other.AuthorizedAliases {
+			if aliases[ alias_key( person ) ] { continue }
+			aliases[ alias_key( person ) ] = true
+			record.AuthorizedAliases = append( record.AuthorizedAliases , person )
+		}
+		if len( kept.Record.FamilyMembers ) == 0 && len( other.FamilyMembers ) > len( record.FamilyMembers ) {
+			record.FamilyMembers = other.FamilyMembers
+		}
+		record.Verified = record.Verified || other.Verified
+		if other.CreatedAt.IsZero() == false && ( record.CreatedAt.IsZero() || other.CreatedAt.Before( record.CreatedAt ) ) {
+			record.CreatedAt = other.CreatedAt
+		}
+		for name , value := range other.Extra {
+			if _ , has := extra[ name ]; has == false {
+				extra[ name ] = value
+			}
+		}
+		largest = max( largest , other.FamilySize )
+	}
+	if len( extra ) > 0 {
+		record.Extra = extra
+	}
+
+	// What prepare compares against: every barcode is already the family's,
+	// with the earliest date any record had for it, so a moved barcode keeps
+	// its date instead of looking newly assigned.
+	previous := clients.Client{ FamilySize: largest , Barcodes: record.Barcodes , BarcodeAssigned: assigned }
+	if err = service.prepare( &record , &previous ); err != nil { return }
+
+	for _ , source := range sources {
+		for _ , entry := range service.Index.VisitsOf( source.ID ) {
+			visit := entry.Visit
+			visit.ClientID = keep
+			if _ , err = service.Docs.Put( visits.Collection , entry.ID , visit ); err != nil { return }
+		}
+	}
+	if _ , err = service.Docs.PutIf( clients.Collection , keep , record , kept.HLC ); err != nil {
+		if errors.Is( err , docs.ErrConflict ) {
+			err = ErrStale
+		}
+		return
+	}
+	for _ , source := range sources {
+		if _ , err = service.Docs.Delete( clients.Collection , source.ID ); err != nil { return }
+	}
+	merged , _ = service.Index.Client( keep )
+	return
+}
+
+// BarcodeRow is one barcode on one family, for the barcodes list.
+type BarcodeRow struct {
+	Barcode  string `json:"barcode"`
+	ClientID string `json:"client_id"`
+	Name     string `json:"name"`
+	// AssignedAt is zero when nothing tells when it was assigned.
+	AssignedAt time.Time `json:"assigned_at"`
+	// Estimated is a barcode from before assignment dates were recorded:
+	// AssignedAt is the first visit that printed it, or else when the
+	// family registered.
+	Estimated bool `json:"estimated"`
+	// Owners is how many families carry this barcode; more than one is a
+	// duplicate to sort out.
+	Owners int `json:"owners"`
+}
+
+// BarcodeRows is every barcode on every live family, most recently
+// assigned first (undated ones last).
+func ( service *Service ) BarcodeRows() ( rows []BarcodeRow ) {
+	rows = []BarcodeRow{}
+	owners := map[string]int{}
+	for _ , client := range service.Index.Clients() {
+		record := client.Record
+		var first_printed map[string]time.Time
+		for _ , barcode := range record.Barcodes {
+			owners[ barcode ]++
+			row := BarcodeRow{ Barcode: barcode , ClientID: client.ID , Name: record.Name() }
+			if at , ok := record.BarcodeAssigned[ barcode ]; ok {
+				row.AssignedAt = at
+			} else {
+				if first_printed == nil {
+					first_printed = firstPrinted( service.Index.VisitsOf( client.ID ) )
+				}
+				row.Estimated = true
+				row.AssignedAt = record.CreatedAt
+				if at , ok := first_printed[ barcode ]; ok && ( row.AssignedAt.IsZero() || at.Before( row.AssignedAt ) ) {
+					row.AssignedAt = at
+				}
+			}
+			rows = append( rows , row )
+		}
+	}
+	for index := range rows {
+		rows[ index ].Owners = owners[ rows[ index ].Barcode ]
+	}
+	sort.SliceStable( rows , func( a int , b int ) bool {
+		left , right := rows[ a ].AssignedAt , rows[ b ].AssignedAt
+		if left.Equal( right ) {
+			return rows[ a ].Barcode < rows[ b ].Barcode
+		}
+		if left.IsZero() || right.IsZero() {
+			return right.IsZero()
+		}
+		return left.After( right )
+	} )
+	return
+}
+
+// firstPrinted is the earliest visit time each barcode was printed on.
+func firstPrinted( history []visits.Entry ) ( first map[string]time.Time ) {
+	first = map[string]time.Time{}
+	for _ , entry := range history {
+		ticket := entry.Visit.Ticket
+		if ticket == nil || ticket.Barcode == "" { continue }
+		if at , ok := first[ ticket.Barcode ]; ok == false || entry.Visit.At.Before( at ) {
+			first[ ticket.Barcode ] = entry.Visit.At
 		}
 	}
 	return

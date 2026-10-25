@@ -4,6 +4,7 @@ import (
 	json "encoding/json"
 	strings "strings"
 	testing "testing"
+	time "time"
 )
 
 func members( n int ) ( out []Person ) {
@@ -133,6 +134,27 @@ func TestBarcodes( t *testing.T ) {
 	first := DerivedBarcode( "client-1" , none )
 	if DerivedBarcode( "client-1" , func( b string ) bool { return b == first } ) == first {
 		t.Fatalf( "derived barcode must re-roll on collision" )
+	}
+}
+
+func TestStampBarcodes( t *testing.T ) {
+	before := time.Date( 2026 , 1 , 1 , 0 , 0 , 0 , 0 , time.UTC )
+	now := time.Date( 2026 , 6 , 1 , 0 , 0 , 0 , 0 , time.UTC )
+	previous := &Client{ Barcodes: []string{ "dated" , "undated" , "removed" } , BarcodeAssigned: map[string]time.Time{ "dated": before , "removed": before } }
+	// The page claims dates of its own; they must not be trusted.
+	client := &Client{ Barcodes: []string{ "dated" , "undated" , "new" } , BarcodeAssigned: map[string]time.Time{ "dated": now , "undated": now } }
+	StampBarcodes( client , previous , now )
+	got := client.BarcodeAssigned
+	if len( got ) != 2 || got[ "dated" ] != before || got[ "new" ] != now {
+		t.Fatalf( "kept dates, stamped new, dropped removed, left the old undated one alone: %v" , got )
+	}
+	if _ , ok := got[ "undated" ]; ok {
+		t.Fatalf( "a barcode from before dates were recorded must not be dated today" )
+	}
+	fresh := &Client{ Barcodes: []string{ "a" } }
+	StampBarcodes( fresh , nil , now )
+	if fresh.BarcodeAssigned[ "a" ] != now {
+		t.Fatalf( "a new record's barcodes are assigned now: %v" , fresh.BarcodeAssigned )
 	}
 }
 

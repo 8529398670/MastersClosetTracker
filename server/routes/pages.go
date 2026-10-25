@@ -61,6 +61,7 @@ func ( handlers *Handlers ) registerPages( app *fiber.App ) {
 	app.Get( "/admin" , staff , handlers.page( "admin.html" ) )
 	app.Get( "/admin/users" , staff , handlers.page( "admin_users.html" ) )
 	app.Get( "/admin/users/:client_id" , staff , handlers.page( "admin_users.html" ) )
+	app.Get( "/admin/barcodes" , staff , handlers.page( "admin_barcodes.html" ) )
 	app.Get( "/admin/user/new" , staff , handlers.page( "admin_user_new.html" ) )
 	app.Get( "/admin/checkin" , staff , handlers.page( "admin_checkin.html" ) )
 	app.Get( "/admin/checkin/:client_id" , staff , handlers.page( "admin_checkin.html" ) )

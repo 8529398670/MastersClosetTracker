@@ -16,3 +16,25 @@
   @media (min-width: 760px) {
     .fm-bc { grid-template-columns: auto minmax(220px, 300px); align-items: start; }
   }
+  /* Today's check-ins and possible duplicates: closed accordions under the
+     search box, so the page opens short. */
+  #panels { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+  .acc { border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  .acc > summary { display: flex; align-items: center; gap: 8px; padding: 12px 14px; cursor: pointer; font-weight: 600; list-style: none; }
+  .acc > summary::-webkit-details-marker { display: none; }
+  .acc > summary::before { content: '▸'; color: var(--muted); transition: transform .15s; }
+  .acc[open] > summary::before { transform: rotate(90deg); }
+  .acc > summary:hover { color: var(--brand); }
+  .acc-count { margin-left: auto; min-width: 26px; padding: 1px 8px; border-radius: 999px; background: var(--line); color: var(--muted); font-size: .8rem; text-align: center; }
+  .acc-count:empty { display: none; }
+  .acc-body { padding: 0 14px 14px; margin: 0; }
+  .acc-body .row.between { align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+  /* One card per duplicate group. */
+  .dup-group { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+  .dup-member { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+  .dup-member.dup-out { opacity: .45; }
+  .dup-pick { display: flex; align-items: center; gap: 5px; font-size: .85rem; white-space: nowrap; padding-top: 2px; }
+  .dup-pick input { width: auto; margin: 0; }
+  .dup-info { flex: 1 1 240px; min-width: 0; overflow-wrap: anywhere; }
+  .dup-name { font-weight: 600; color: var(--ink); }
+  .dup-done { margin: 0; color: var(--ok); font-weight: 600; }

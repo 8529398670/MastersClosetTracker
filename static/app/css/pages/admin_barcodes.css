@@ -1,0 +1,22 @@
+/* Styles for admin_barcodes.html. */
+  .totals { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 6px; }
+  .stat { flex: 1 1 120px; background: #f3e8ef; border-radius: 12px; padding: 14px 16px; text-align: center; }
+  .stat.warn { background: var(--warn-bg); }
+  .stat .num { font-size: 1.7rem; font-weight: 800; color: var(--brand); line-height: 1; }
+  .stat.warn .num { color: var(--warn); }
+  .stat .lbl { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-top: 5px; font-weight: 700; }
+  .controls { display: flex; gap: 10px 14px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+  .controls input[type=search] { flex: 1 1 220px; }
+  .controls select { width: auto; display: inline-block; margin-left: 4px; }
+  .controls .check { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .controls .check input { width: auto; }
+  .bc-item { cursor: default; flex-wrap: wrap; }
+  .bc-item:hover { background: transparent; }
+  .bc-item.dupe { border-color: var(--warn); background: #fffbeb; }
+  .bc-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 200px; }
+  .code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 1.02rem; font-weight: 700; overflow-wrap: anywhere; }
+  .who { color: var(--ink); overflow-wrap: anywhere; }
+  .bc-side { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .when { font-size: .82rem; white-space: nowrap; }
+  .when.est { color: var(--muted); font-style: italic; }
+  .pill { border-radius: 20px; padding: 3px 11px; font-size: .78rem; font-weight: 700; white-space: nowrap; background: var(--warn-bg); color: var(--warn); }

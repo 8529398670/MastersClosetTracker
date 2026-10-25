@@ -2,6 +2,7 @@
 // can refuse inline scripts. Order relative to the page's other scripts is
 // unchanged.
 const listEl = document.getElementById('list');
+const panelsEl = document.getElementById('panels');
 const editorEl = document.getElementById('editor');
 let current = null;     // full loaded user
 let LANGS = [{ code: 'en', name: 'English' }];
@@ -19,18 +20,21 @@ let editorOnly = false;
 function showList(on) {
   listEl.style.display = on ? '' : 'none';
   if (!on) listEl.innerHTML = '';
+  panelsEl.hidden = !on;
 }
 
 function esc(v) { return v == null ? '' : String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
 function debounce(fn, ms) { let t; return function () { clearTimeout(t); const a = arguments; t = setTimeout(() => fn.apply(null, a), ms); }; }
 
-function row(u) {
+// timeOnly: the today list, where the date goes without saying.
+function row(u, timeOnly) {
   const div = document.createElement('div');
   div.className = 'list-row';
   // Recent rows carry the time too; trim it to HH:MM.
-  const when = u.last_check_in_date
-    ? u.last_check_in_date + (u.last_check_in_time ? ' ' + u.last_check_in_time.slice(0, 5) : '')
-    : 'never';
+  const hhmm = u.last_check_in_time ? u.last_check_in_time.slice(0, 5) : '';
+  const when = !u.last_check_in_date ? 'never'
+    : timeOnly && hhmm ? hhmm
+    : u.last_check_in_date + (hhmm ? ' ' + hhmm : '');
   div.innerHTML = '<strong>' + esc(u.name_string || u.username || '(no name)') + '</strong>' +
     '<span class="muted small">' + esc(when) + '</span>';
   div.onclick = () => pickUser(u.uuid);
@@ -52,6 +56,7 @@ async function search() {
   if (v === '') { loadRecent(); return; }
   // Searching is an explicit ask for the list, even on a deep link.
   if (editorOnly) { editorOnly = false; showList(true); }
+  panelsEl.hidden = true; // results replace the accordions until the box is cleared
   if (v.length < 2) { listEl.innerHTML = '<p class="muted small">Type at least 2 letters.</p>'; return; }
   listEl.innerHTML = 'Searching…';
   const data = await (await fetch('/api/clients/search?q=' + encodeURIComponent(v))).json();
@@ -59,21 +64,158 @@ async function search() {
 }
 const liveSearch = debounce(search, 250);
 
-// The default list under an empty search box: who came in most recently.
+// Under an empty search box: two accordions, everyone checked in today and
+// the possible duplicates. Both start closed; whether each was left open is
+// remembered per browser.
+function rememberOpen(details) {
+  const key = 'admin_users.' + details.id;
+  try { if (localStorage.getItem(key) === '1') details.open = true; } catch (e) {}
+  details.addEventListener('toggle', () => {
+    try { localStorage.setItem(key, details.open ? '1' : '0'); } catch (e) {}
+  });
+}
+
 async function loadRecent() {
   if (editorOnly) return; // deep-linked editor: nothing above the form
-  let users = [];
-  try { users = (await (await fetch('/api/clients/recent?limit=25')).json()).result || []; } catch (e) {}
+  let users = null;
+  try { users = (await (await fetch('/api/clients/recent?day=today')).json()).result || []; } catch (e) {}
   if (document.getElementById('q').value.trim() !== '') return; // the user started typing meanwhile
   listEl.innerHTML = '';
-  if (!users.length) return;
-  const head = document.createElement('p');
-  head.className = 'muted small';
-  head.style.margin = '0';
-  head.textContent = 'Recently checked in';
-  listEl.appendChild(head);
-  users.forEach(u => listEl.appendChild(row(u)));
+  panelsEl.hidden = false;
+  const todayList = document.getElementById('todayList');
+  todayList.innerHTML = '';
+  document.getElementById('todayCount').textContent = users ? users.length : '';
+  document.getElementById('todayTitle').textContent = users && !users.length ? 'Nobody checked in yet today' : 'Checked in today';
+  if (users === null) { todayList.innerHTML = '<p class="muted small">Could not load today\'s check-ins.</p>'; return; }
+  users.forEach(u => todayList.appendChild(row(u, true)));
 }
+
+// ---------------------------------------------------------------------------
+// duplicates
+// ---------------------------------------------------------------------------
+
+const dupAcc = document.getElementById('dupAcc');
+const dupList = document.getElementById('dupList');
+let dupLoaded = false;
+
+async function loadDuplicates() {
+  dupLoaded = true;
+  dupList.innerHTML = '<p class="muted small">Looking for duplicates…</p>';
+  let res, data = {};
+  try { res = await fetch('/api/admin/clients/duplicates'); data = await res.json(); } catch (e) {}
+  if (!res || !res.ok) {
+    dupLoaded = false;
+    dupList.innerHTML = '<p class="err small">' + esc(res && res.status === 403 ? 'Only admins can see and merge duplicates.' : (data.error || 'Could not load duplicates.')) + '</p>';
+    return;
+  }
+  const groups = data.result || [];
+  document.getElementById('dupCount').textContent = groups.length;
+  dupList.innerHTML = groups.length ? '' : '<p class="muted small">No duplicates found.</p>';
+  groups.forEach((g, gi) => dupList.appendChild(dupGroup(g.members, gi)));
+}
+
+// The record a merge keeps by default: the one with the most visits, then
+// the one registered first.
+function defaultKeeper(members) {
+  return members.slice().sort((a, b) =>
+    (b.check_in_count - a.check_in_count) ||
+    (a.created_at || '9999').localeCompare(b.created_at || '9999'))[0].uuid;
+}
+
+function dupGroup(members, gi) {
+  const box = document.createElement('div');
+  box.className = 'dup-group';
+  const keeper = defaultKeeper(members);
+  members.forEach(m => {
+    const ad = m.address || {};
+    const street = [ad.street_number, ad.street_name, ad.city].filter(Boolean).join(' ');
+    const details = [
+      (m.barcodes || []).join(', '),
+      m.phone_number, m.email_address, street,
+      m.check_in_count + (m.check_in_count === 1 ? ' visit' : ' visits'),
+      m.last_check_in_date ? 'last ' + m.last_check_in_date : '',
+      m.created_at ? 'registered ' + m.created_at : ''
+    ].filter(Boolean).map(esc).join(' · ');
+    const div = document.createElement('div');
+    div.className = 'dup-member';
+    div.dataset.uuid = m.uuid;
+    div.dataset.rev = m._rev || '';
+    div.dataset.name = m.name_string || m.username || '(no name)';
+    div.innerHTML =
+      '<label class="dup-pick"><input type="radio" name="keep-' + gi + '" value="' + esc(m.uuid) + '"' + (m.uuid === keeper ? ' checked' : '') + '> Keep</label>' +
+      '<label class="dup-pick"><input type="checkbox" class="dup-inc" checked> Include</label>' +
+      '<div class="dup-info"><a href="#" class="dup-name">' + esc(div.dataset.name) + '</a> ' +
+        (m.reasons || []).map(r => '<span class="badge">' + esc(r) + '</span>').join(' ') +
+        '<div class="muted small">' + details + '</div></div>';
+    div.querySelector('.dup-name').onclick = e => { e.preventDefault(); pickUser(m.uuid); };
+    box.appendChild(div);
+  });
+  const foot = document.createElement('div');
+  foot.className = 'row';
+  foot.innerHTML = '<button class="btn small dup-merge" type="button"></button><span class="dup-status muted small"></span>';
+  box.appendChild(foot);
+
+  const btn = foot.querySelector('.dup-merge');
+  // The kept record is always part of the merge; the button counts what's ticked.
+  function sync() {
+    let n = 0;
+    box.querySelectorAll('.dup-member').forEach(d => {
+      const keep = d.querySelector('input[type=radio]').checked;
+      const inc = d.querySelector('.dup-inc');
+      if (keep) inc.checked = true;
+      inc.disabled = keep;
+      d.classList.toggle('dup-out', !inc.checked);
+      if (inc.checked) n++;
+    });
+    btn.textContent = 'Merge ' + n + ' into one';
+    btn.disabled = n < 2;
+  }
+  box.addEventListener('change', sync);
+  sync();
+  btn.onclick = () => mergeGroup(box);
+  return box;
+}
+
+async function mergeGroup(box) {
+  const rows = Array.from(box.querySelectorAll('.dup-member'));
+  const keep = rows.find(d => d.querySelector('input[type=radio]').checked);
+  const others = rows.filter(d => d !== keep && d.querySelector('.dup-inc').checked);
+  if (!keep || !others.length) return;
+  if (!confirm('Merge ' + (others.length + 1) + ' records into ' + keep.dataset.name + '?\n\n' +
+    'The other ' + (others.length === 1 ? 'record is' : others.length + ' records are') +
+    ' deleted; their visits and barcodes move over.')) return;
+  const st = box.querySelector('.dup-status');
+  const btn = box.querySelector('.dup-merge');
+  btn.disabled = true;
+  st.textContent = 'Merging…';
+  let res, data = {};
+  try {
+    res = await fetch('/api/admin/clients/merge', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keep: keep.dataset.uuid, others: others.map(d => d.dataset.uuid), _rev: keep.dataset.rev })
+    });
+    data = await res.json();
+  } catch (e) {}
+  if (!res || !res.ok) {
+    btn.disabled = false;
+    st.innerHTML = '<span class="err">' + esc(res && res.status === 403 ? 'Merging needs an admin signed in on this browser.' : (data.error || 'Merge failed')) + '</span>';
+    return;
+  }
+  const merged = data.result || {};
+  box.innerHTML = '<p class="dup-done">✓ Merged into <a href="#">' + esc(merged.name_string || keep.dataset.name) + '</a></p>';
+  box.querySelector('a').onclick = e => { e.preventDefault(); pickUser(keep.dataset.uuid); };
+  // Some unticked members may still match each other, and today's list may
+  // have changed hands; refresh both.
+  if (others.length + 1 < rows.length) loadDuplicates();
+  else document.getElementById('dupCount').textContent = dupList.querySelectorAll('.dup-group .dup-member').length ? dupList.querySelectorAll('.dup-group:not(:has(.dup-done))').length : 0;
+  loadRecent();
+}
+
+rememberOpen(document.getElementById('todayAcc'));
+rememberOpen(dupAcc);
+dupAcc.addEventListener('toggle', () => { if (dupAcc.open && !dupLoaded) loadDuplicates(); });
+if (dupAcc.open) loadDuplicates();
+document.getElementById('dupRefresh').onclick = loadDuplicates;
 
 function renderList(users) {
   listEl.innerHTML = '';

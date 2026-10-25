@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Barcodes — Admin</title>
+<link rel="stylesheet" href="/app/css/app.css">
+<link rel="stylesheet" href="/app/css/pages/admin_barcodes.css">
+</head>
+<body>
+<main class="card wide">
+  <div class="row between">
+    <h1>🏷 Barcodes</h1>
+    <span>
+      <a class="btn small" href="/api/clients/barcodes/export.xlsx">⬇ Download XLSX</a>
+      <a class="btn ghost small" href="/admin">← Admin</a>
+    </span>
+  </div>
+
+  <div id="banner" class="totals"></div>
+
+  <div class="controls">
+    <input id="q" type="search" placeholder="Search barcode or name" autocomplete="off">
+    <label class="small">Sort
+      <select id="order">
+        <option value="newest">Date assigned (newest)</option>
+        <option value="oldest">Date assigned (oldest)</option>
+        <option value="barcode">Barcode</option>
+        <option value="name">Name</option>
+      </select>
+    </label>
+    <label class="small check"><input id="dupes" type="checkbox"> Duplicates only</label>
+  </div>
+  <p class="muted small">Dates marked ~ are estimates for barcodes assigned before dates were recorded (first check-in that printed it, or when the family registered).</p>
+
+  <div id="list" class="list"></div>
+</main>
+
+<script src="/app/js/mct-api.js"></script>
+<script src="/app/js/pages/admin_barcodes.js"></script>
+</body>
+</html>

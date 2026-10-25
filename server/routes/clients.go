@@ -2,12 +2,15 @@ package routes
 
 import (
 	json "encoding/json"
+	fmt "fmt"
+	log "log"
 	strconv "strconv"
 	strings "strings"
 
 	fiber "github.com/gofiber/fiber/v3"
 
 	clients "github.com/0187773933/MastersClosetTracker/server/clients"
+	export "github.com/0187773933/MastersClosetTracker/server/export"
 	hlc "github.com/0187773933/MastersClosetTracker/server/hlc"
 	index "github.com/0187773933/MastersClosetTracker/server/index"
 	views "github.com/0187773933/MastersClosetTracker/server/views"
@@ -45,14 +48,23 @@ func ( handlers *Handlers ) summary( client index.Client ) ( summary views.Summa
 }
 
 // RecentClients is the families who visited most recently (?limit=, 25).
+// ?day=today is instead every family whose last visit was today, however
+// many.
 func ( handlers *Handlers ) RecentClients( c fiber.Ctx ) ( err error ) {
 	limit , _ := strconv.Atoi( c.Query( "limit" , "25" ) )
 	if limit < 1 || limit > 200 {
 		limit = 25
 	}
-	location := handlers.Domain.Closet.Location()
+	closet := handlers.Domain.Closet
+	location := closet.Location()
+	today := ""
+	if c.Query( "day" ) == "today" {
+		limit = 0
+		today = visits.DayKey( closet.Now() , location )
+	}
 	rows := []views.Summary{}
-	for _ , row := range handlers.Domain.Closet.Index.Recent( limit ) {
+	for _ , row := range closet.Index.Recent( limit ) {
+		if today != "" && row.Last.Visit.Day != today { continue }
 		last := row.Last
 		rows = append( rows , views.NewSummary( row.Client , &last , row.Count , location ) )
 	}
@@ -87,6 +99,26 @@ func ( handlers *Handlers ) ClientByBarcode( c fiber.Ctx ) ( err error ) {
 		view[ "duplicate_barcode" ] = len( matches )
 	}
 	err = c.JSON( view )
+	return
+}
+
+// ListBarcodes is every barcode on every family, newest assignment first.
+func ( handlers *Handlers ) ListBarcodes( c fiber.Ctx ) ( err error ) {
+	err = c.JSON( fiber.Map{ "result": handlers.Domain.Closet.BarcodeRows() } )
+	return
+}
+
+// ExportBarcodes is the same list as a workbook.
+func ( handlers *Handlers ) ExportBarcodes( c fiber.Ctx ) ( err error ) {
+	closet := handlers.Domain.Closet
+	now := closet.Now()
+	content , build_err := export.Barcodes( closet.BarcodeRows() , closet.Location() , now )
+	if build_err != nil {
+		log.Printf( "[export] %v" , build_err )
+		err = serverError( c )
+		return
+	}
+	err = sendXLSX( c , content , fmt.Sprintf( "barcodes_%s.xlsx" , now.In( closet.Location() ).Format( "20060102" ) ) )
 	return
 }
 
@@ -166,5 +198,70 @@ func ( handlers *Handlers ) SimilarClients( c fiber.Ctx ) ( err error ) {
 		rows = append( rows , handlers.summary( match ) )
 	}
 	err = c.JSON( fiber.Map{ "result": rows } )
+	return
+}
+
+// DuplicateClients is every group of families that look like the same one.
+func ( handlers *Handlers ) DuplicateClients( c fiber.Ctx ) ( err error ) {
+	type member struct {
+		views.Summary
+		Email     string          `json:"email_address"`
+		Phone     string          `json:"phone_number"`
+		Address   clients.Address `json:"address"`
+		CreatedAt string          `json:"created_at,omitempty"`
+		Reasons   []string        `json:"reasons"`
+		Rev       string          `json:"_rev"`
+	}
+	type group struct {
+		Members []member `json:"members"`
+	}
+	result := []group{}
+	for _ , found := range handlers.Domain.Closet.Duplicates() {
+		row := group{}
+		for _ , entry := range found.Members {
+			record := entry.Client.Record
+			created := ""
+			if record.CreatedAt.IsZero() == false {
+				created = record.CreatedAt.Format( "2006-01-02" )
+			}
+			row.Members = append( row.Members , member{
+				Summary:   handlers.summary( entry.Client ),
+				Email:     record.EmailAddress,
+				Phone:     record.PhoneNumber,
+				Address:   record.Identity.Address,
+				CreatedAt: created,
+				Reasons:   entry.Reasons,
+				Rev:       entry.Client.HLC.String(),
+			} )
+		}
+		result = append( result , row )
+	}
+	err = c.JSON( fiber.Map{ "result": result } )
+	return
+}
+
+// MergeClients folds other families into one ({keep, others, _rev}); the
+// others are deleted, their visits and barcodes moved to the one kept.
+func ( handlers *Handlers ) MergeClients( c fiber.Ctx ) ( err error ) {
+	var body struct {
+		Keep   string   `json:"keep"`
+		Others []string `json:"others"`
+		Rev    string   `json:"_rev"`
+	}
+	if json.Unmarshal( c.Body() , &body ) != nil || body.Keep == "" || len( body.Others ) == 0 || len( body.Others ) > 50 {
+		err = badRequest( c , "malformed merge" )
+		return
+	}
+	rev , parse_err := hlc.Parse( body.Rev )
+	if parse_err != nil {
+		err = badRequest( c , "malformed merge" )
+		return
+	}
+	merged , merge_err := handlers.Domain.Closet.MergeClients( body.Keep , body.Others , rev )
+	if merge_err != nil {
+		err = closetError( c , merge_err )
+		return
+	}
+	err = c.JSON( fiber.Map{ "result": handlers.userView( merged ) } )
 	return
 }

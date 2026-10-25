@@ -1,5 +1,5 @@
-// Package export writes the check-in history as an Excel workbook: a totals
-// sheet, then one sheet per collection day.
+// Package export writes the closet's Excel workbooks: the check-in history (a
+// totals sheet, then one sheet per collection day) and the barcode list.
 package export
 
 import (
@@ -8,6 +8,8 @@ import (
 	time "time"
 
 	excelize "github.com/xuri/excelize/v2"
+
+	closet "github.com/0187773933/MastersClosetTracker/server/closet"
 
 	visits "github.com/0187773933/MastersClosetTracker/server/visits"
 )
@@ -114,5 +116,51 @@ func sheetName( label string , used map[string]bool ) ( name string ) {
 		}
 	}
 	used[ name ] = true
+	return
+}
+
+var barcodeHeaders = []string{ "Barcode" , "Name" , "Assigned" , "Estimated" , "Families With This Barcode" , "Client ID" }
+
+// Barcodes builds the barcode list as .xlsx bytes, one row per barcode per
+// family, in the order given. Barcodes shared by several families are
+// highlighted.
+func Barcodes( rows []closet.BarcodeRow , location *time.Location , generated time.Time ) ( content []byte , err error ) {
+	file := excelize.NewFile()
+	defer file.Close()
+	sheet := "Barcodes"
+	if err = file.SetSheetName( "Sheet1" , sheet ); err != nil { return }
+	duplicate , err := file.NewStyle( &excelize.Style{ Fill: excelize.Fill{ Type: "pattern" , Pattern: 1 , Color: []string{ "FDE2B8" } } } )
+	if err != nil { return }
+	for column , header := range barcodeHeaders {
+		file.SetCellValue( sheet , cell( column+1 , 1 ) , header )
+	}
+	for index , row := range rows {
+		assigned := ""
+		if row.AssignedAt.IsZero() == false {
+			assigned = row.AssignedAt.In( location ).Format( "2006-01-02 15:04" )
+		}
+		estimated := ""
+		if row.Estimated {
+			estimated = "yes"
+		}
+		line := index + 2
+		// Barcodes are text: a leading zero must survive and a long one
+		// must not turn into scientific notation.
+		for column , value := range []any{ row.Barcode , row.Name , assigned , estimated , row.Owners , row.ClientID } {
+			file.SetCellValue( sheet , cell( column+1 , line ) , value )
+		}
+		if row.Owners > 1 {
+			file.SetCellStyle( sheet , cell( 1 , line ) , cell( len( barcodeHeaders ) , line ) , duplicate )
+		}
+	}
+	file.SetColWidth( sheet , "A" , "A" , 16 )
+	file.SetColWidth( sheet , "B" , "B" , 30 )
+	file.SetColWidth( sheet , "C" , "C" , 18 )
+	file.SetColWidth( sheet , "E" , "E" , 26 )
+	file.SetColWidth( sheet , "F" , "F" , 38 )
+	file.SetCellValue( sheet , cell( len( barcodeHeaders )+2 , 1 ) , "Generated " + generated.In( location ).Format( "2006-01-02 15:04" ) )
+	buffer , err := file.WriteToBuffer()
+	if err != nil { return }
+	content = buffer.Bytes()
 	return
 }

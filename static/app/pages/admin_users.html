@@ -19,6 +19,23 @@
     <button id="searchBtn" class="btn" type="button">Search</button>
   </div>
 
+  <div id="panels">
+    <details class="acc" id="todayAcc">
+      <summary><span id="todayTitle">Checked in today</span><span id="todayCount" class="acc-count"></span></summary>
+      <div id="todayList" class="list acc-body"></div>
+    </details>
+    <details class="acc" id="dupAcc">
+      <summary><span>Possible duplicates</span><span id="dupCount" class="acc-count"></span></summary>
+      <div class="acc-body">
+        <div class="row between nowrap">
+          <span class="muted small">Records that look like the same person registered twice: same first and last name, same first name and birthday, or a shared barcode with a nearly identical name. (Different people sharing one barcode are listed on the Barcodes page instead.) Pick the one to keep, untick any that aren't the same person, then merge.</span>
+          <button id="dupRefresh" class="btn ghost small" type="button">↻ Refresh</button>
+        </div>
+        <div id="dupList"></div>
+      </div>
+    </details>
+  </div>
+
   <div id="list" class="list"></div>
   <div id="editor"></div>
 </main>

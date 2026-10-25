@@ -36,6 +36,8 @@ func ( handlers *Handlers ) registerStaffAPI( app *fiber.App ) {
 	clients.Get( "/recent" , handlers.RecentClients )
 	clients.Get( "/search" , handlers.SearchClients )
 	clients.Get( "/by-barcode" , handlers.ClientByBarcode )
+	clients.Get( "/barcodes" , handlers.ListBarcodes )
+	clients.Get( "/barcodes/export.xlsx" , handlers.ExportBarcodes )
 	clients.Post( "" , handlers.CreateClient )
 	clients.Get( "/:client_id" , handlers.GetClient )
 	clients.Post( "/:client_id" , handlers.UpdateClient )
@@ -66,6 +68,8 @@ func ( handlers *Handlers ) registerAdminAPI( app *fiber.App ) {
 	// the pages can undo one, so a leaked admin API key must not be able to
 	// erase families or their history.
 	session := handlers.Guard.RequireSession
+	app.Get( "/api/admin/clients/duplicates" , csrf , handlers.DuplicateClients )
+	app.Post( "/api/admin/clients/merge" , csrf , session , handlers.MergeClients )
 	app.Post( "/api/admin/clients/:client_id/delete" , csrf , session , handlers.DeleteClient )
 	app.Post( "/api/admin/visits/:visit_id/delete" , csrf , session , handlers.DeleteVisit )
 	app.Post( "/api/admin/settings" , csrf , handlers.UpdateSettings )

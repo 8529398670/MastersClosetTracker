@@ -66,6 +66,9 @@ type Person struct {
 type Client struct {
 	Verified          bool      `json:"verified"`
 	Barcodes          []string  `json:"barcodes"`
+	// BarcodeAssigned is when each barcode was first put on this record.
+	// Barcodes from before it was recorded have no entry.
+	BarcodeAssigned   map[string]time.Time `json:"barcode_assigned,omitempty"`
 	EmailAddress      string    `json:"email_address"`
 	PhoneNumber       string    `json:"phone_number"`
 	Identity          Person    `json:"identity"`
@@ -83,7 +86,7 @@ type Client struct {
 var stored = map[string]bool{
 	"verified": true , "barcodes": true , "email_address": true , "phone_number": true ,
 	"identity": true , "authorized_aliases": true , "family_size": true , "family_members": true ,
-	"language": true , "created_at": true ,
+	"language": true , "created_at": true , "barcode_assigned": true ,
 }
 
 // derived are keys the pages are shown and send back, which are computed
