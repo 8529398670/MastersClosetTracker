@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build (via scripts/docker.sh) and run the container.
+# Build (via docker/common.sh) and run the container.
 #
 # There is deliberately no docker-compose here. This app is one container, so
 # compose would add a second configuration format that hides the same flags
@@ -12,12 +12,12 @@
 # port. Nothing is read from the environment and nothing is passed in with -e
 # -- the container reads the same config.yaml, mounted read-only.
 set -euo pipefail
-cd "$( dirname "${BASH_SOURCE[0]}" )"
+cd "$( dirname "${BASH_SOURCE[0]}" )/.."
 
-source scripts/docker.sh
-# ./dockerRun.sh      the station (config.yaml)
-# ./dockerRun.sh hub  the sync hub (config.hub.yaml) -- see dockerRunHub.sh
-# ./dockerRun.sh site the public site (config.site.yaml) -- see dockerRunSite.sh
+source docker/common.sh
+# docker/dockerRun.sh      the station (configs/config.yaml)
+# docker/dockerRun.sh hub  the sync hub (configs/config.hub.yaml) -- see dockerRunHub.sh
+# docker/dockerRun.sh site the public site (configs/config.site.yaml) -- see dockerRunSite.sh
 select_role "${1:-station}"
 build_image
 
@@ -40,7 +40,7 @@ particular:
   docker.bind_address     127.0.0.1 keeps it reachable only from this host
   docker.host_port        the port published there
 
-Then run ./dockerRun.sh again. Back config.yaml up: its secret_key is the only
+Then run docker/dockerRun.sh again. Back config.yaml up: its secret_key is the only
 thing that can read the database.
 
 NOTE

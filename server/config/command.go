@@ -12,9 +12,10 @@ import (
 const commandUsage = `config -- create, check, or read %[1]s
 
 Usage:
-  init  [-file ./%[1]s]        write a new config with fresh keys
+  init  [-file ./configs/%[1]s]
+                                     write a new config with fresh keys
                                      (-file - prints it instead)
-  example [-file ./%[2]s]
+  example [-file ./configs/%[2]s]
                                      write the committed example: every
                                      default, no keys (-file - prints it)
   check [-file path]                 validate the config in use, say which
@@ -24,7 +25,8 @@ Usage:
                                      for dockerRun.sh and build.sh to eval
 
 Without -file, the file is found the way the server finds it:
-  --config <path>, then ./%[1]s, then ~/.config/%[3]s/config.yaml
+  --config <path>, then ./configs/%[1]s, then ./%[1]s,
+  then ~/.config/%[3]s/config.yaml
 `
 
 // CommandUsage prints the config subcommands.
@@ -69,7 +71,7 @@ func RunCommand( arguments []string ) ( err error ) {
 
 func commandInit( arguments []string ) ( err error ) {
 	set := flag.NewFlagSet( "config init" , flag.ExitOnError )
-	path := set.String( "file" , active.LocalFileName , "where to write it; - for stdout" )
+	path := set.String( "file" , LocalPath() , "where to write it; - for stdout" )
 	set.Parse( arguments )
 
 	if *path == "-" {
@@ -90,7 +92,7 @@ func commandInit( arguments []string ) ( err error ) {
 // one command instead of by hand.
 func commandExample( arguments []string ) ( err error ) {
 	set := flag.NewFlagSet( "config example" , flag.ExitOnError )
-	path := set.String( "file" , active.ExampleFileName , "where to write it; - for stdout" )
+	path := set.String( "file" , filepath.Join( LocalConfigDir , active.ExampleFileName ) , "where to write it; - for stdout" )
 	set.Parse( arguments )
 
 	if *path == "-" {

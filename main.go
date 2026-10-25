@@ -20,7 +20,9 @@
 package main
 
 import (
+	embed "embed"
 	fmt "fmt"
+	fs "io/fs"
 	log "log"
 	os "os"
 	signal "os/signal"
@@ -60,6 +62,32 @@ var (
 	commit    = "unknown"
 	buildDate = "unknown"
 )
+
+// The frontend, compiled into the binary.
+//
+// This is what makes build.sh able to produce one file that runs anywhere:
+// no ./static directory to ship alongside it, no language.yaml to forget.
+// The embed directives have to live in the package at the module root,
+// because go:embed cannot reference paths outside its own package directory
+// -- which is the only reason this is here rather than inside server/assets.
+//
+// "all:" includes files whose names begin with "." or "_", which a normal
+// embed pattern skips.
+//
+//go:embed all:static
+var embeddedStaticRoot embed.FS
+
+//go:embed configs/language.yaml
+var embeddedLanguage []byte
+
+// embeddedStatic re-roots the embedded tree at ./static, so a request for
+// "css/style.css" does not have to know it lives at "static/css/style.css"
+// inside the binary. This makes it interchangeable with the os.Root
+// filesystem server/assets opens for ./static on disk.
+func embeddedStatic() ( fsys fs.FS , err error ) {
+	fsys , err = fs.Sub( embeddedStaticRoot , "static" )
+	return
+}
 
 func main() {
 	config.Use( config.Station )
@@ -243,6 +271,7 @@ func run() ( err error ) {
 	}()
 
 	log.Printf( "[start] %s %s listening on %s (secure cookies: %v)" , cfg.ProjectName , version , cfg.ListenAddress() , cfg.SecureCookies )
+	log.Printf( "[open]  %s" , cfg.LocalURL() )
 	if cfg.ConfigCreated {
 		log.Printf( "[config] %s (created, with a new secret key -- back it up)" , cfg.ConfigFile )
 	} else {

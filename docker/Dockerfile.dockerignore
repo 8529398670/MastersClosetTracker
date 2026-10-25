@@ -1,0 +1,22 @@
+# Read by BuildKit because it sits beside docker/Dockerfile. Patterns are
+# relative to the build context, which is the project directory.
+.git
+.gitignore
+data/
+data-hub/
+data-site/
+*.db
+# The configs hold secret keys. configs/language.yaml stays: it is embedded.
+configs/config.yaml
+configs/config.*.yaml
+!configs/config.*example.yaml
+config.yaml
+config.*.yaml
+*.md
+docker/
+launchers/
+run.sh
+run.bat
+dist/
+.run/
+misc/

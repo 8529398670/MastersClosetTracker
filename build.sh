@@ -8,7 +8,7 @@
 # because of three choices working together:
 #
 #   CGO_ENABLED=0   static linking, so there is no libc version to match
-#   go:embed        the frontend lives inside the binary (see embed.go)
+#   go:embed        the frontend lives inside the binary (see main.go)
 #   bolt            the database is one file the binary creates on first run
 #
 # Docker is still the better answer for a long-lived internet-facing
@@ -18,7 +18,7 @@
 # runtime, a Raspberry Pi, a USB stick.
 #
 # The binary name, the output directory, and the target list are the build:
-# section of config.yaml. Targets given on the command line replace the list
+# section of configs/config.yaml. Targets given on the command line replace the list
 # for one run:
 #
 #   ./build.sh                  build every target in build.targets
@@ -36,8 +36,8 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
 # `eval "$( failing )"` would quietly eval nothing and carry on.
 # Three binaries come out of this repo: the station (mct, package "."), the
 # sync hub (mct-hub, ./cmd/hub) and the public site (mct-site, ./cmd/site).
-# Each reads its own config's build: section -- config.yaml, config.hub.yaml,
-# config.site.yaml -- for its name and default targets.
+# Each reads its own config's build: section -- configs/config.yaml,
+# configs/config.hub.yaml, configs/config.site.yaml -- for its name and default targets.
 #
 #   ./build.sh                         all three, each for its configured targets
 #   ./build.sh linux/amd64             all three, for just that platform
@@ -76,13 +76,13 @@ FAILED=()
 for ROLE in "${WHICH[@]}"; do
   if [ "$ROLE" = "hub" ]; then
     PACKAGE="./cmd/hub"
-    BUILD_CONFIG="$( go run ./cmd/hub config shell -file ./config.hub.yaml build )"
+    BUILD_CONFIG="$( go run ./cmd/hub config shell -file ./configs/config.hub.yaml build )"
   elif [ "$ROLE" = "site" ]; then
     PACKAGE="./cmd/site"
-    BUILD_CONFIG="$( go run ./cmd/site config shell -file ./config.site.yaml build )"
+    BUILD_CONFIG="$( go run ./cmd/site config shell -file ./configs/config.site.yaml build )"
   else
     PACKAGE="."
-    BUILD_CONFIG="$( go run . config shell -file ./config.yaml build )"
+    BUILD_CONFIG="$( go run . config shell -file ./configs/config.yaml build )"
   fi
   eval "$BUILD_CONFIG"
   BINARY_NAME="$build_binary_name"
@@ -170,7 +170,7 @@ if [ -n "${STATION_PUBLISH_DIR:-}" ]; then
   publish "${BUILT}_darwin_amd64" "${STATION_NAME}"
   publish "${BUILT}_darwin_arm64" "${STATION_NAME}_arm"
   # Every station runs on this same config.yaml.
-  publish config.yaml config.yaml
+  publish configs/config.yaml config.yaml
   echo ""
 fi
 

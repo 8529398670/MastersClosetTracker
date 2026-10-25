@@ -32,7 +32,9 @@ set -euo pipefail
 cd "$( dirname "${BASH_SOURCE[0]}" )"
 
 
-BINARY="$( pwd )/mct"
+# The dev build goes in dist/ beside build.sh's releases, unversioned so
+# login.sh and the next run know where to find it.
+BINARY="$( pwd )/dist/mct"
 RUN_DIR="$( pwd )/.run"
 PID_FILE="${RUN_DIR}/server.pid"
 
@@ -50,6 +52,7 @@ PID_FILE="${RUN_DIR}/server.pid"
 # when, and the commit hash is stamped separately alongside it.
 VERSION="$( date -u +%Y.%m.%d-%H%M )"
 COMMIT="$( git rev-parse --short HEAD 2>/dev/null || echo "unknown" )"
+mkdir -p dist
 go build -trimpath \
   -ldflags "-X main.version=${VERSION} -X main.commit=${COMMIT}" \
   -o "$BINARY" .
@@ -63,11 +66,11 @@ fi
 # ~/.config/masters-closet-tracker/config.yaml instead, which is the right thing for
 # a portable binary and the wrong one for a checkout. Write it here and stop,
 # like dockerRun.sh, so it gets looked at before the first start.
-if [ ! -f config.yaml ]; then
-  "$BINARY" config init -file ./config.yaml
+if [ ! -f configs/config.yaml ]; then
+  "$BINARY" config init -file ./configs/config.yaml
   cat <<NOTE
 
-For plain http://localhost set server.secure_cookies: false in config.yaml,
+For plain http://localhost set server.secure_cookies: false in configs/config.yaml,
 or the browser drops the session cookie and login silently does nothing.
 Then run ./run.sh again.
 NOTE
@@ -99,17 +102,39 @@ fi
 
 mkdir -p "$RUN_DIR"
 
-cat <<NOTE
-Starting mct ${VERSION} from $( pwd )
-  config   ./config.yaml
-  state    ~/.config/masters-closet-tracker/ unless server.app_dir says otherwise
-           (./run.sh manage paths)
-  static   ./static is served from disk, so frontend edits need only a reload
-
-On a fresh database the first-run login link is printed below. Locked out
-later? ./run.sh manage reissue-login -user-id 1 from another terminal.
-
-NOTE
+# The banner: a smaller cut of misc/ascii-art-example.txt. Colour only on a
+# terminal, and never with NO_COLOR set (https://no-color.org).
+ART="" BOLD="" DIM="" RESET=""
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+  ART=$'\e[36m' BOLD=$'\e[1m' DIM=$'\e[2m' RESET=$'\e[0m'
+fi
+{
+  echo
+  printf '%s\n' "  ${ART}        ----------------${RESET}"
+  printf '%s\n' "  ${ART}   --------------------------${RESET}"
+  printf '%s\n' "  ${ART}       +----------------+${RESET}"
+  printf '%s\n' "  ${ART} ------|     |    |     |------${RESET}"
+  printf '%s\n' "  ${ART}   ----+     |    |     +----${RESET}"
+  printf '%s\n' "  ${ART} ------------|    |------------${RESET}"
+  printf '%s\n' "  ${ART}     +-------+    +-------+       ${RESET}   ${BOLD}MASTER'S CLOSET${RESET}"
+  printf '%s\n' "  ${ART}-----|                    |-----  ${RESET}   ${DIM}tracker${RESET}  ${VERSION}"
+  printf '%s\n' "  ${ART}     +-------+    +-------+       ${RESET}   ${DIM}from${RESET}     $( pwd )"
+  printf '%s\n' "  ${ART} ------------|    |------------${RESET}"
+  printf '%s\n' "  ${ART}   ----+-----|    |-----+----${RESET}"
+  printf '%s\n' "  ${ART}       |     |    |     |${RESET}"
+  printf '%s\n' "  ${ART} ------+-----+    +-----+------${RESET}"
+  printf '%s\n' "  ${ART}             +----+${RESET}"
+  printf '%s\n' "  ${ART}      --------------------${RESET}"
+  printf '%s\n' "  ${ART}  ----------------------------${RESET}"
+  echo
+  printf '%s\n' "  ${DIM}config${RESET}   ./configs/config.yaml"
+  printf '%s\n' "  ${DIM}state${RESET}    ~/.config/masters-closet-tracker/ unless server.app_dir says otherwise"
+  printf '%s\n' "  ${DIM}static${RESET}   ./static is served from disk, so frontend edits need only a reload"
+  echo
+  printf '%s\n' "  On a fresh database the first-run login link is printed below."
+  printf '%s\n' "  Locked out later? ${BOLD}launchers/login.sh${RESET} opens a fresh admin login in Firefox."
+  echo
+}
 
 # exec keeps this shell's pid, so the one written here is the server's.
 echo $$ > "$PID_FILE"

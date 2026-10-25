@@ -16,16 +16,17 @@
 #
 #   --config <path>                    an explicit file; with no app_dir its
 #                                      state goes in <name>.data/ beside it
-#   ./config.yaml                      a source checkout, or the folder the
-#                                      portable binary sits in; also what
-#                                      dockerRun.sh and build.sh read
+#   ./configs/config.yaml              a source checkout; also what
+#                                      docker/dockerRun.sh and build.sh read
+#   ./config.yaml                      the folder the portable binary sits in
 #   ~/.config/masters-closet-tracker/config.yaml   a portable binary run anywhere else
 #
 # If none exists the server writes the last one, with fresh keys, on first
-# run. `mct config init` writes ./config.yaml the same way, and
+# run. `mct config init` writes ./configs/config.yaml the same way, and
 # `mct config check` validates whichever file is in use.
 #
-# Relative paths in server: resolve against the directory holding this file.
+# Relative paths in server: resolve against the directory holding this file
+# (the project directory, for one in a checkout's configs/).
 # Relative paths in docker: and build: resolve against the project directory.
 #
 # An unknown key is an error, not a silently ignored typo.

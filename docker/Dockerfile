@@ -20,20 +20,20 @@ COPY . .
 # -trimpath keeps build-machine paths out of the binary; -s -w drop the debug
 # symbol tables, which shrinks it and removes a little detail from anyone
 # poking at a compromised container.
-# Version metadata, passed by scripts/docker.sh so that
+# Version metadata, passed by docker/common.sh so that
 # `docker exec <name> /app/server version` is as informative as a portable
 # binary built by build.sh.
 # Which binary this image is: "." is the station (mct), "./cmd/hub" the sync
 # hub (mct-hub), "./cmd/site" the public site (mct-site). All land at
 # /app/server, so the healthcheck, the entrypoint, and
 # `docker exec <name> /app/server ...` read the same either way. dockerRun.sh
-# picks it (./dockerRun.sh hub, ./dockerRun.sh site).
+# picks it (docker/dockerRun.sh hub, docker/dockerRun.sh site).
 ARG TARGET=.
 ARG VERSION=dev
 ARG COMMIT=unknown
 ARG BUILD_DATE=unknown
 
-# One binary. The frontend is compiled into it by go:embed (see embed.go),
+# One binary. The frontend is compiled into it by go:embed (see main.go),
 # and account administration is the "manage" subcommand -- so the image needs
 # no static directory, no language.yaml, and no second executable.
 #
@@ -65,7 +65,7 @@ COPY --from=builder /out/server ./
 
 # There is no ENV here and no config.yaml in the image (.dockerignore keeps
 # it out -- it holds the secret key, and an image layer is forever).
-# dockerRun.sh mounts the project's config.yaml at /app/config.yaml at run
+# dockerRun.sh mounts the project's configs/config.yaml at /app/config.yaml at run
 # time, so one image serves any deployment and a config change needs a
 # restart, not a rebuild.
 #
@@ -73,7 +73,7 @@ COPY --from=builder /out/server ./
 # image, so the embedded frontend is used. Mounting over it, or putting a
 # language.yaml in the data directory, is the supported way to run the shipped
 # UI with different wording:
-#   -v ./language.yaml:/app/data/language.yaml:ro
+#   -v ./configs/language.yaml:/app/data/language.yaml:ro
 
 # Only the data directory is writable, and only by the app user. Everything
 # else stays owned by root and read-only to the process -- so even a bug that

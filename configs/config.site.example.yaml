@@ -5,13 +5,13 @@
 #
 # To use it:
 #
-#   cp config.site.example.yaml config.site.yaml
-#   chmod 600 config.site.yaml
+#   cp configs/config.site.example.yaml configs/config.site.yaml
+#   chmod 600 configs/config.site.yaml
 #   openssl rand -hex 32        # paste into server.secret_key (and any
 #                               # other empty *_key the file asks for)
 #
-# Or skip the copy: `mct-site config init` writes config.site.yaml with fresh
-# keys already in it.
+# Or skip the copy: `mct-site config init` writes configs/config.site.yaml
+# with fresh keys already in it.
 #
 # This file is generated from the embedded defaults in server/config/. After
 # changing a default there, regenerate it with `mct-site config example`.
@@ -29,14 +29,16 @@
 # Where it is read from, first match wins:
 #
 #   --config <path>                    an explicit file
-#   ./config.site.yaml                 a source checkout; also what
-#                                      dockerRunSite.sh reads
+#   ./configs/config.site.yaml         a source checkout; also what
+#                                      docker/dockerRunSite.sh reads
+#   ./config.site.yaml                 the folder the portable binary sits in
 #   ~/.config/mct-site/config.yaml     a portable binary run anywhere else
 #
 # If none exists the site writes the last one on first run.
-# `mct-site config init` writes ./config.site.yaml the same way.
+# `mct-site config init` writes ./configs/config.site.yaml the same way.
 #
-# Relative paths in server: resolve against the directory holding this file.
+# Relative paths in server: resolve against the directory holding this file
+# (the project directory, for one in a checkout's configs/).
 # Relative paths in docker: and build: resolve against the project directory.
 #
 # An unknown key -- or a station- or hub-only section -- is an error.

@@ -5,13 +5,13 @@
 #
 # To use it:
 #
-#   cp {{EXAMPLE_FILE}} {{LOCAL_FILE}}
-#   chmod 600 {{LOCAL_FILE}}
+#   cp configs/{{EXAMPLE_FILE}} configs/{{LOCAL_FILE}}
+#   chmod 600 configs/{{LOCAL_FILE}}
 #   openssl rand -hex 32        # paste into server.secret_key (and any
 #                               # other empty *_key the file asks for)
 #
-# Or skip the copy: `{{BINARY}} config init` writes {{LOCAL_FILE}} with fresh
-# keys already in it.
+# Or skip the copy: `{{BINARY}} config init` writes configs/{{LOCAL_FILE}}
+# with fresh keys already in it.
 #
 # This file is generated from the embedded defaults in server/config/. After
 # changing a default there, regenerate it with `{{BINARY}} config example`.

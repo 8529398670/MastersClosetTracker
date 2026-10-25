@@ -46,6 +46,7 @@ Usage:
   bootstrap-admin -name "Ada"        create the first admin + login link
   create-login    -name "Grace" -role user
   reissue-login   -user-id 3         fresh link for an existing user
+                  [-url]             print only the URL (for scripts)
   list-users                         id, name, role, status
   set-disabled    -user-id 3 -disabled=true
   revoke-access   -user-id 3         end every session, login link and API key
@@ -662,11 +663,16 @@ func commandCreateLogin( back backend , cfg *config.Config , arguments []string 
 func commandReissueLogin( back backend , cfg *config.Config , arguments []string ) ( err error ) {
 	set := flag.NewFlagSet( "reissue-login" , flag.ExitOnError )
 	user_id := set.Uint64( "user-id" , 0 , "id of an existing user" )
+	url_only := set.Bool( "url" , false , "print only the localhost URL, for scripts (login.bat)" )
 	set.Parse( arguments )
 
 	user , err := back.ReissueLogin( *user_id )
 	if err != nil { return }
 
+	if *url_only {
+		fmt.Printf( "%s/login/%s\n" , cfg.LocalURL() , user.Credential )
+		return
+	}
 	bootstrap.PrintLoginLink( cfg , fmt.Sprintf( "%s #%d %q" , user.Role , user.ID , user.DisplayName ) , user.Credential )
 	return
 }

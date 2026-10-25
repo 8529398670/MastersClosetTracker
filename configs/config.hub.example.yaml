@@ -5,13 +5,13 @@
 #
 # To use it:
 #
-#   cp config.hub.example.yaml config.hub.yaml
-#   chmod 600 config.hub.yaml
+#   cp configs/config.hub.example.yaml configs/config.hub.yaml
+#   chmod 600 configs/config.hub.yaml
 #   openssl rand -hex 32        # paste into server.secret_key (and any
 #                               # other empty *_key the file asks for)
 #
-# Or skip the copy: `mct-hub config init` writes config.hub.yaml with fresh
-# keys already in it.
+# Or skip the copy: `mct-hub config init` writes configs/config.hub.yaml
+# with fresh keys already in it.
 #
 # This file is generated from the embedded defaults in server/config/. After
 # changing a default there, regenerate it with `mct-hub config example`.
@@ -31,14 +31,16 @@
 #
 #   --config <path>                    an explicit file; with no app_dir its
 #                                      state goes in <name>.data/ beside it
-#   ./config.hub.yaml                  a source checkout; also what
-#                                      dockerRunHub.sh reads
+#   ./configs/config.hub.yaml          a source checkout; also what
+#                                      docker/dockerRunHub.sh reads
+#   ./config.hub.yaml                  the folder the portable binary sits in
 #   ~/.config/mct-hub/config.yaml      a portable binary run anywhere else
 #
 # If none exists the hub writes the last one, with a fresh secret key, on
-# first run. `mct-hub config init` writes ./config.hub.yaml the same way.
+# first run. `mct-hub config init` writes ./configs/config.hub.yaml the same way.
 #
-# Relative paths in server: resolve against the directory holding this file.
+# Relative paths in server: resolve against the directory holding this file
+# (the project directory, for one in a checkout's configs/).
 # Relative paths in docker: and build: resolve against the project directory.
 #
 # An unknown key -- or a station-only section -- is an error.

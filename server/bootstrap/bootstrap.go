@@ -65,17 +65,17 @@ func PrintAPIKey( cfg *config.Config , label string , credential string , expire
 }
 
 // PrintLoginLink writes the one moment a credential is ever visible. It is
-// shown as a path because the server genuinely does not know its public
-// origin -- behind a reverse proxy it sees an internal address, and printing
-// a confidently wrong URL is worse than printing an obviously partial one.
+// printed as a localhost URL so a terminal can open it with a click on the
+// machine running the server. Behind a reverse proxy the same /login/... path
+// works on the real host instead, which the server cannot know.
 func PrintLoginLink( cfg *config.Config , label string , credential string ) {
 	line := strings.Repeat( "-" , 72 )
 	fmt.Println( line )
 	fmt.Printf( "  ONE-TIME LOGIN LINK -- %s\n" , label )
 	fmt.Println( line )
-	fmt.Printf( "  /login/%s\n" , credential )
+	fmt.Printf( "  %s/login/%s\n" , cfg.LocalURL() , credential )
 	fmt.Println( line )
-	fmt.Printf( "  Valid once, for %s. Prepend your real scheme and host, e.g.\n" , cfg.LoginTokenTTL )
+	fmt.Printf( "  Valid once, for %s. From another machine, use your real host:\n" , cfg.LoginTokenTTL )
 	fmt.Printf( "    https://your-host.example.com/login/%s\n" , credential )
 	fmt.Println( "  It is not stored anywhere and cannot be shown again -- if you lose" )
 	fmt.Println( "  it, mint another with: mct manage reissue-login -user-id <id>" )

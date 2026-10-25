@@ -28,10 +28,10 @@ rem
 rem Where it differs from run.sh, Windows forces it:
 rem
 rem   - A running .exe cannot be overwritten. The build goes to .run\ and is
-rem     copied over mct.exe only once the old server has exited;
+rem     copied over dist\mct.exe only once the old server has exited;
 rem     one-off runs use the copy in .run\ and never touch the server's.
 rem   - There is no pid file. The old server is whatever process is running
-rem     this checkout's mct.exe, which a full path pins down
+rem     this checkout's dist\mct.exe, which a full path pins down
 rem     exactly, so a stale pid can never point at something else.
 rem   - Windows cannot send SIGTERM to another console's process, so the old
 rem     server is killed rather than drained. bolt is crash-safe, and the
@@ -45,11 +45,12 @@ setlocal
 cd /d "%~dp0"
 
 
-set "BINARY=%CD%\mct.exe"
+set "BINARY=%CD%\dist\mct.exe"
 set "RUN_DIR=%CD%\.run"
 set "BUILT=%RUN_DIR%\mct.exe"
 
 if not exist "%RUN_DIR%" mkdir "%RUN_DIR%"
+if not exist dist mkdir dist
 
 rem Rebuild every time and let Go decide whether that means anything: its build
 rem cache makes an unchanged tree a near-instant no-op, and catches every input
@@ -79,11 +80,11 @@ rem none. Without one here the binary would quietly create
 rem %USERPROFILE%\.config\masters-closet-tracker\config.yaml instead, which is the
 rem right thing for a portable binary and the wrong one for a checkout. Write it
 rem here and stop, like dockerRun.sh, so it gets looked at before the first start.
-if exist config.yaml goto stop_old
-"%BUILT%" config init -file .\config.yaml
+if exist configs\config.yaml goto stop_old
+"%BUILT%" config init -file .\configs\config.yaml
 if errorlevel 1 exit /b 1
 echo.
-echo For plain http://localhost set server.secure_cookies: false in config.yaml,
+echo For plain http://localhost set server.secure_cookies: false in configs\config.yaml,
 echo or the browser drops the session cookie and login silently does nothing.
 echo Then run run.bat again.
 exit /b 0
@@ -104,14 +105,39 @@ exit /b 1
 
 :start
 
-echo Starting mct %VERSION% from %CD%
-echo   config   .\config.yaml
-echo   state    %USERPROFILE%\.config\masters-closet-tracker\ unless server.app_dir says otherwise
-echo            (run.bat manage paths)
-echo   static   .\static is served from disk, so frontend edits need only a reload
+rem The banner: a smaller cut of misc\ascii-art-example.txt. Colour needs the
+rem VT support in Windows 10 and later; NO_COLOR (https://no-color.org) or an
+rem older console gets plain text. The ESC trick is the usual one: prompt $E
+rem expands to the escape character.
+set "ART=" & set "BOLD=" & set "DIM=" & set "RESET="
+if defined NO_COLOR goto banner
+for /f %%e in ('echo prompt $E^| cmd') do set "ESC=%%e"
+set "ART=%ESC%[36m" & set "BOLD=%ESC%[1m" & set "DIM=%ESC%[2m" & set "RESET=%ESC%[0m"
+:banner
 echo.
-echo On a fresh database the first-run login link is printed below. Locked out
-echo later? run.bat manage reissue-login -user-id 1 from another window.
+echo(  %ART%        ----------------%RESET%
+echo(  %ART%   --------------------------%RESET%
+echo(  %ART%       +----------------+%RESET%
+echo(  %ART% ------^|     ^|    ^|     ^|------%RESET%
+echo(  %ART%   ----+     ^|    ^|     +----%RESET%
+echo(  %ART% ------------^|    ^|------------%RESET%
+echo(  %ART%     +-------+    +-------+       %RESET%   %BOLD%MASTER'S CLOSET%RESET%
+echo(  %ART%-----^|                    ^|-----  %RESET%   %DIM%tracker%RESET%  %VERSION%
+echo(  %ART%     +-------+    +-------+       %RESET%   %DIM%from%RESET%     %CD%
+echo(  %ART% ------------^|    ^|------------%RESET%
+echo(  %ART%   ----+-----^|    ^|-----+----%RESET%
+echo(  %ART%       ^|     ^|    ^|     ^|%RESET%
+echo(  %ART% ------+-----+    +-----+------%RESET%
+echo(  %ART%             +----+%RESET%
+echo(  %ART%      --------------------%RESET%
+echo(  %ART%  ----------------------------%RESET%
+echo.
+echo   %DIM%config%RESET%   .\configs\config.yaml
+echo   %DIM%state%RESET%    %USERPROFILE%\.config\masters-closet-tracker\ unless server.app_dir says otherwise
+echo   %DIM%static%RESET%   .\static is served from disk, so frontend edits need only a reload
+echo.
+echo   On a fresh database the first-run login link is printed below.
+echo   Locked out later? %BOLD%launchers\login.bat%RESET% opens a fresh admin login in Firefox.
 echo.
 
 "%BINARY%"

@@ -49,9 +49,10 @@ func AppSlug() ( slug string ) {
 // directory -- see DefaultAppDir for why.
 // ConfigFileName is the name inside the app directory. In a source checkout
 // the file is Profile.LocalFileName instead, so a station and a hub config can
-// sit side by side.
+// sit side by side, in LocalConfigDir.
 const (
 	ConfigFileName    = "config.yaml"
+	LocalConfigDir    = "configs"
 	DatabaseFileName  = "app.db"
 	ControlSocketName = "control.sock"
 	StorageDirName    = "storage"
@@ -252,6 +253,11 @@ type Config struct {
 	Host string
 	Port int
 
+	// BrowserPort is the port a browser on this machine reaches the server
+	// on: server.port, or docker.host_port inside the container, where
+	// server.port is only the container's side of the mapping.
+	BrowserPort int
+
 	// SecureCookies must stay true anywhere a real browser will talk to this
 	// over the internet. It is only false for plain-http://localhost work,
 	// because a Secure cookie is silently dropped over http and the login
@@ -354,14 +360,15 @@ func DefaultAppDir() ( dir string ) {
 
 // Locate finds the config file in use: the pinned path inside the container
 // image, otherwise the file named by --config, otherwise the profile's local
-// file (./config.yaml or ./config.hub.yaml), otherwise config.yaml in the
-// default app directory. When none exists, path is where one would be
+// file (./configs/config.yaml, then ./config.yaml), otherwise config.yaml in
+// the default app directory. When none exists, path is where one would be
 // created.
 //
-// ./config.yaml comes first because that is a source checkout, which is also
-// where dockerRun.sh and build.sh read it. A portable binary run from
-// anywhere else falls through to ~/.config/<slug>/ and finds the same file
-// every time.
+// ./configs/ comes first because that is a source checkout, which is also
+// where dockerRun.sh and build.sh read it. ./config.yaml is the folder a
+// published station binary sits in, beside its config. A portable binary run
+// from anywhere else falls through to ~/.config/<slug>/ and finds the same
+// file every time.
 func Locate() ( path string , exists bool ) {
 	if pinned.ConfigFile != "" {
 		path = pinned.ConfigFile
@@ -373,9 +380,11 @@ func Locate() ( path string , exists bool ) {
 		exists = isFile( path )
 		return
 	}
-	if local , err := filepath.Abs( active.LocalFileName ); err == nil && isFile( local ) {
-		path , exists = local , true
-		return
+	for _ , candidate := range []string{ LocalPath() , active.LocalFileName } {
+		if local , err := filepath.Abs( candidate ); err == nil && isFile( local ) {
+			path , exists = local , true
+			return
+		}
 	}
 	path = filepath.Join( DefaultAppDir() , ConfigFileName )
 	if absolute , err := filepath.Abs( path ); err == nil {
@@ -385,15 +394,33 @@ func Locate() ( path string , exists bool ) {
 	return
 }
 
+// LocalPath is where a source checkout keeps the active profile's config,
+// and where `config init` writes one by default.
+func LocalPath() ( path string ) {
+	path = filepath.Join( LocalConfigDir , active.LocalFileName )
+	return
+}
+
+// pathBase is the directory relative paths in a config resolve against: the
+// one holding it, except that a config in a checkout's configs/ directory
+// speaks for the project directory above it, so ./static still means the
+// project's static/.
+func pathBase( path string ) ( base string ) {
+	base = filepath.Dir( path )
+	if filepath.Base( base ) == LocalConfigDir {
+		base = filepath.Dir( base )
+	}
+	return
+}
+
 func isFile( path string ) ( result bool ) {
 	info , err := os.Stat( path )
 	result = err == nil && info.Mode().IsRegular()
 	return
 }
 
-// resolvePath makes a config path absolute against the directory holding
-// config.yaml, so the same file means the same thing whatever directory the
-// process was started from.
+// resolvePath makes a config path absolute against pathBase, so the same
+// file means the same thing whatever directory the process was started from.
 func resolvePath( base string , value string ) ( result string ) {
 	result = value
 	if result == "" || filepath.IsAbs( result ) {
@@ -769,7 +796,7 @@ func Load() ( cfg *Config , err error ) {
 		if err = CheckSecretKey( file , path ); err != nil { return }
 	}
 
-	base := filepath.Dir( path )
+	base := pathBase( path )
 
 	app_dir := DefaultAppDir()
 	if flagFile != "" && path == flagFile {
@@ -803,7 +830,7 @@ func Load() ( cfg *Config , err error ) {
 	if language_file == "" {
 		language_file = filepath.Join( app_dir , LanguageFileName )
 		if isFile( language_file ) == false {
-			language_file = filepath.Join( base , LanguageFileName )
+			language_file = filepath.Join( filepath.Dir( path ) , LanguageFileName )
 		}
 	}
 
@@ -829,8 +856,9 @@ func Load() ( cfg *Config , err error ) {
 		StaticDir:    resolvePath( base , file.Server.StaticDir ),
 		LanguageFile: language_file,
 
-		Host: host,
-		Port: file.Server.Port,
+		Host:        host,
+		Port:        file.Server.Port,
+		BrowserPort: file.Server.Port,
 
 		SecureCookies: file.Server.SecureCookies,
 		CookieName:    file.Server.CookieName,
@@ -851,6 +879,10 @@ func Load() ( cfg *Config , err error ) {
 		TrustProxy:     file.Server.TrustProxy,
 		TrustedProxies: file.Server.TrustedProxies,
 		ProxyHeader:    file.Server.ProxyHeader,
+	}
+
+	if InContainer() && file.Docker.HostPort > 0 {
+		cfg.BrowserPort = file.Docker.HostPort
 	}
 
 	if active.has( "guests" ) {
@@ -901,5 +933,13 @@ func seconds( value int ) ( result time.Duration ) {
 
 func ( cfg *Config ) ListenAddress() ( result string ) {
 	result = fmt.Sprintf( "%s:%d" , cfg.Host , cfg.Port )
+	return
+}
+
+// LocalURL is this server as a browser on the same machine reaches it, e.g.
+// http://localhost:5960. Plain http even with secure_cookies on: browsers
+// treat localhost as a secure context and keep Secure cookies over it.
+func ( cfg *Config ) LocalURL() ( result string ) {
+	result = fmt.Sprintf( "http://localhost:%d" , cfg.BrowserPort )
 	return
 }

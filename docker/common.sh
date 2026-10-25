@@ -11,11 +11,11 @@
 # docker_* / server_* value printed by `config shell docker` (see
 # server/config/command.go for the list).
 
-CONFIG_FILE="$( pwd )/config.yaml"
+CONFIG_FILE="$( pwd )/configs/config.yaml"
 
 # Which binary to build into the image: "." (the station) unless the calling
 # script selects the hub or the public site, which also points CONFIG_FILE at
-# config.hub.yaml / config.site.yaml.
+# configs/config.hub.yaml / configs/config.site.yaml.
 BUILD_TARGET="."
 
 # select_role is called by dockerRun.sh / dockerBuild.sh with their first
@@ -26,11 +26,11 @@ select_role() {
   case "$ROLE" in
     station) ;;
     hub)
-      CONFIG_FILE="$( pwd )/config.hub.yaml"
+      CONFIG_FILE="$( pwd )/configs/config.hub.yaml"
       BUILD_TARGET="./cmd/hub"
       ;;
     site)
-      CONFIG_FILE="$( pwd )/config.site.yaml"
+      CONFIG_FILE="$( pwd )/configs/config.site.yaml"
       BUILD_TARGET="./cmd/site"
       ;;
     *)
@@ -44,7 +44,7 @@ select_role() {
 # nothing but read config.yaml: no network, read-only, no capabilities. It runs
 # as the file's owner, so a 0600 config.yaml is readable on Linux as well as
 # macOS. Not the invoking user: with no capabilities even root cannot read
-# another user's 0600 file, so `sudo ./dockerRun.sh`, or a config.yaml saved
+# another user's 0600 file, so `sudo docker/dockerRun.sh`, or a config.yaml saved
 # by `sudo nano` (now owned by root), failed with "permission denied".
 #
 # The file is only mounted when it exists. Mounting a missing file makes Docker
@@ -86,6 +86,7 @@ build_image() {
   id_file="$( mktemp )"
   echo "Building ${VERSION}"
   if ! docker build \
+         --file docker/Dockerfile \
          --iidfile "$id_file" \
          --build-arg "TARGET=${BUILD_TARGET}" \
          --build-arg "VERSION=${VERSION}" \
