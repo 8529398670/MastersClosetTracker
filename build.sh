@@ -152,13 +152,13 @@ if [ -n "${STATION_PUBLISH_DIR:-}" ]; then
     exit 1
   fi
   publish() {
-    local from="$1" name="$2"
+    local from="$1" name="$2" dir="${3:-$STATION_PUBLISH_DIR}"
     if [ ! -f "$from" ]; then
       echo "  (not built this run, skipped: ${name})"
       return
     fi
-    cp "$from" "${STATION_PUBLISH_DIR}/.${name}.partial"
-    mv -f "${STATION_PUBLISH_DIR}/.${name}.partial" "${STATION_PUBLISH_DIR}/${name}"
+    cp "$from" "${dir}/.${name}.partial"
+    mv -f "${dir}/.${name}.partial" "${dir}/${name}"
     echo "  ${name}"
   }
   BUILT="${STATION_OUTPUT_DIR}/${STATION_NAME}_${VERSION}"
@@ -171,6 +171,12 @@ if [ -n "${STATION_PUBLISH_DIR:-}" ]; then
   publish "${BUILT}_darwin_arm64" "${STATION_NAME}_arm"
   # Every station runs on this same config.yaml.
   publish configs/config.yaml config.yaml
+  # The double-click launchers go one level up, beside the publish folder
+  # (.files), where the people at a station look for them.
+  LAUNCHER_DIR="$( dirname "$STATION_PUBLISH_DIR" )"
+  echo "Publishing launchers to ${LAUNCHER_DIR}"
+  publish deploy/MCT.command MCT.command "$LAUNCHER_DIR"
+  publish deploy/MCT.bat MCT.bat "$LAUNCHER_DIR"
   echo ""
 fi
 
